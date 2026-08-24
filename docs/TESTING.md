@@ -188,3 +188,10 @@ declarado no relatório, não em silêncio.
 
 Para habilitá-los, semeie o usuário com o script de provisionamento; o passo a
 passo está em `supabase/seed/README.md`.
+
+`e2e/convite.spec.ts` está no mesmo regime e vai além: ele **cria dado real** no
+banco. Por isso se limpa — revoga o convite ao final e revoga resíduo no início,
+para ser idempotente mesmo depois de uma execução interrompida. O e-mail do
+convidado leva o nome do projeto como sufixo, porque desktop e tablet rodam em
+paralelo e o índice `invitations_pendente_unico` permite um convite pendente por
+e-mail e clínica — com endereço fixo, um projeto derrubaria o outro.

@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { ROLES } from "@/domain/auth/types";
 import { registrarAuditoria } from "@/server/auth/audit";
+import { enviarConvite } from "@/server/email/enviar-convite";
 import { requireViewer } from "@/server/auth/session";
 import { createSupabaseServerClient } from "@/server/supabase/server";
 
@@ -107,11 +108,30 @@ export async function convidarMembro(
 
   revalidatePath("/configuracoes/usuarios");
 
-  // Sem provedor de e-mail, o link é devolvido ao admin para repasse manual.
-  // É a única vez que o token em claro existe: o banco só tem o hash.
+  const link = `${await origemDaRequisicao()}/convite/${token}`;
+
+  const envio = await enviarConvite({
+    para: email,
+    clinica: viewer.clinic.name,
+    papel,
+    link,
+    expiraEm,
+    convidadoPor: viewer.profile.fullName,
+  });
+
+  // O link só continua visível quando o e-mail NÃO chegou de fato — seja
+  // porque o adaptador é o de console, seja porque o envio falhou. Com entrega
+  // real, exibi-lo seria espalhar sem necessidade a única cópia do token em
+  // claro. Ver docs/adr/005-email-transacional.md.
+  if (envio.entregue && envio.porEmail) {
+    return { aviso: `Convite enviado para ${email}.` };
+  }
+
   return {
-    aviso: `Convite criado para ${email}.`,
-    linkDeConvite: `${await origemDaRequisicao()}/convite/${token}`,
+    aviso: envio.entregue
+      ? `Convite criado para ${email}. O envio por e-mail está em modo de desenvolvimento.`
+      : `Convite criado para ${email}, mas o e-mail não pôde ser enviado (${envio.motivo}).`,
+    linkDeConvite: link,
   };
 }
 

@@ -444,7 +444,10 @@ o banco só tem o SHA-256, então nem o próprio sistema consegue reconstruí-lo
 interface avisa que fechar a tela sem copiar torna o convite inalcançável, caso
 em que resta revogar e refazer.
 
-Quando o provedor entrar, o link deixa de ser exibido e passa a ir por e-mail.
+**Desfecho (ADR 005):** o provedor entrou. O link agora só é exibido quando o
+e-mail **não** chegou de fato — com o adaptador `console`, que é o padrão em
+desenvolvimento, ou quando o envio falha, e aí com o motivo junto. Com entrega
+real, exibi-lo seria espalhar sem necessidade a única cópia do token em claro.
 
 ## #28 — Sub-navegação de Configurações com 8 seções, 1 implementada
 

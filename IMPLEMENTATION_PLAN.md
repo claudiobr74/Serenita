@@ -187,7 +187,8 @@ curl http://localhost:3000/api/health
 - [x] **Script de provisionamento** de clínica + primeiro admin (`scripts/provisionar-clinica.mts`), por `service_role`, com `--dry-run` e desfazimento em ordem inversa. Documentado em `supabase/seed/README.md`
 - [x] Aceite de convite — `/convite/[token]` pública, com `accept_invitation` (`SECURITY DEFINER`, atômica) e `invitation_preview`. O token sozinho não basta: exige sessão com o e-mail do convite (#32)
 - [x] Link do convite devolvido ao admin para repasse manual, enquanto não há provedor de e-mail (#27)
-- [ ] Envio de e-mail transacional (convite e recuperação de senha)
+- [x] Envio de e-mail transacional — porta `EmailProvider` com adaptadores `console` (padrão) e `resend`, mensagem de convite e ADR 005
+- [ ] SMTP próprio no Supabase Auth (magic link e recuperação de senha) — **configuração de painel, não código**: Authentication → Emails → SMTP Settings. O SMTP padrão do Supabase tem limite baixo e não serve para produção
 - [ ] Perfil profissional (seção "Perfil profissional" de Configurações)
 - [ ] Arquivar membro — a RLS já revoga o acesso de perfil arquivado (cenário 19), falta a ação na interface
 - [ ] E-mail dos membros ativos na tabela (#29) — decisão de modelo pendente
