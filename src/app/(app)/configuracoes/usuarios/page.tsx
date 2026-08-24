@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { Card, CardTitle } from "@/components/ui";
 import {
@@ -15,9 +16,10 @@ import { TabelaDeMembros } from "./tabela-de-membros";
 /**
  * `/configuracoes/usuarios` — frame `usuarios-permissoes` (6:4989).
  *
- * O guard de admin está no layout de `/configuracoes`. A RLS de `profiles` e
- * de `invitations` é a camada real: `invitations_select_admin` só devolve
- * linhas para admin da própria clínica.
+ * **Admin**, conforme o Route Map. O guard é aqui e não no layout: o shell de
+ * Configurações é compartilhado com seções de outros papéis
+ * (DESIGN_DECISIONS #33). A RLS é a camada real —
+ * `invitations_select_admin` só devolve linhas para admin da própria clínica.
  */
 
 export const metadata: Metadata = {
@@ -39,6 +41,10 @@ export type ConvitePendente = {
 
 export default async function UsuariosPage() {
   const viewer = await requireViewer();
+  // Sem revelar que a rota existe: `03 — PATTERNS` manda não expor recurso fora
+  // de escopo (DESIGN_DECISIONS #7).
+  if (viewer.profile.role !== "admin") redirect("/configuracoes");
+
   const supabase = await createSupabaseServerClient();
 
   const [{ data: perfis }, { data: convites }] = await Promise.all([

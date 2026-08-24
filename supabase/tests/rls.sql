@@ -265,6 +265,28 @@ begin
     'clinica visivel apos arquivamento', '0',
     (select count(*)::text from public.clinics));
 
+  -- `is_clinical_role()` precisa ser FALSE, e não NULL, para perfil arquivado.
+  -- NULL nega em RLS, mas quebra `not is_clinical_role()` e qualquer
+  -- `coalesce(..., true)` que alguém escreva na Fase 4. Ver migration
+  -- 20260824204026.
+  insert into resultado values (20, 'Perfil arquivado',
+    'is_clinical_role() do arquivado', 'false',
+    coalesce(public.is_clinical_role()::text, 'NULO'));
+
+  insert into resultado values (21, 'Perfil arquivado',
+    'current_profile_role() do arquivado', 'NULO',
+    coalesce(public.current_profile_role()::text, 'NULO'));
+
+  begin
+    update public.profiles set archived_at = null where id = auth.uid();
+    get diagnostics n = row_count;
+    insert into resultado values (22, 'Perfil arquivado',
+      'arquivado restaura o proprio acesso', '0 linhas', n::text || ' linhas');
+  exception when others then
+    insert into resultado values (22, 'Perfil arquivado',
+      'arquivado restaura o proprio acesso', '0 linhas', '0 linhas');
+  end;
+
   -- ==========================================================================
   -- Ameaça: convite indevido
   --
@@ -279,10 +301,10 @@ begin
   values (clinica_a, 'novo@clinica.com', 'psychologist', admin_a::uuid,
           'hash-de-teste-1', now() + interval '7 days')
   returning id into convite;
-  insert into resultado values (20, 'Convite',
+  insert into resultado values (23, 'Convite',
     'admin cria convite', 'PERMITIDO', 'PERMITIDO');
 
-  insert into resultado values (21, 'Convite',
+  insert into resultado values (24, 'Convite',
     'created_at imposto pelo servidor', 'data do servidor',
     case when (select created_at from public.invitations where id = convite)
               > now() - interval '5 minutes'
@@ -292,17 +314,17 @@ begin
     format('{"sub":"%s","role":"authenticated"}', sec_a), true);
 
   select count(*) into n from public.invitations;
-  insert into resultado values (22, 'Convite',
+  insert into resultado values (25, 'Convite',
     'secretaria le convites', '0', n::text);
 
   begin
     insert into public.invitations (clinic_id, email, role, invited_by, token_hash, expires_at)
     values (clinica_a, 'x@y.com', 'admin', sec_a::uuid, 'hash-de-teste-2',
             now() + interval '7 days');
-    insert into resultado values (23, 'Convite',
+    insert into resultado values (26, 'Convite',
       'secretaria cria convite', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
   exception when others then
-    insert into resultado values (23, 'Convite',
+    insert into resultado values (26, 'Convite',
       'secretaria cria convite', 'BLOQUEADO', 'BLOQUEADO');
   end;
 
@@ -310,12 +332,12 @@ begin
     format('{"sub":"%s","role":"authenticated"}', admin_b), true);
 
   select count(*) into n from public.invitations;
-  insert into resultado values (24, 'Convite cross-tenant',
+  insert into resultado values (27, 'Convite cross-tenant',
     'admin B le convites da clinica A', '0', n::text);
 
   update public.invitations set revoked_at = now() where id = convite;
   get diagnostics n = row_count;
-  insert into resultado values (25, 'Convite cross-tenant',
+  insert into resultado values (28, 'Convite cross-tenant',
     'admin B revoga convite da clinica A', '0 linhas', n::text || ' linhas');
 
   -- `invited_by = auth.uid()` no WITH CHECK: nem admin atribui convite a outro.
@@ -325,10 +347,10 @@ begin
     insert into public.invitations (clinic_id, email, role, invited_by, token_hash, expires_at)
     values (clinica_a, 'outro@clinica.com', 'secretary', admin_b::uuid,
             'hash-de-teste-3', now() + interval '7 days');
-    insert into resultado values (26, 'Convite',
+    insert into resultado values (29, 'Convite',
       'admin forja invited_by', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
   exception when others then
-    insert into resultado values (26, 'Convite',
+    insert into resultado values (29, 'Convite',
       'admin forja invited_by', 'BLOQUEADO', 'BLOQUEADO');
   end;
 
@@ -337,17 +359,17 @@ begin
     insert into public.invitations (clinic_id, email, role, invited_by, token_hash, expires_at)
     values (clinica_a, 'NOVO@clinica.com', 'secretary', admin_a::uuid,
             'hash-de-teste-4', now() + interval '7 days');
-    insert into resultado values (27, 'Convite',
+    insert into resultado values (30, 'Convite',
       'duplicar convite pendente (case-insensitive)', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
   exception when others then
-    insert into resultado values (27, 'Convite',
+    insert into resultado values (30, 'Convite',
       'duplicar convite pendente (case-insensitive)', 'BLOQUEADO', 'BLOQUEADO');
   end;
 
   perform set_config('request.jwt.claims', '', true);
   set local role anon;
   select count(*) into n from public.invitations;
-  insert into resultado values (28, 'Leitura anonima',
+  insert into resultado values (31, 'Leitura anonima',
     'anon lista convites', '0', n::text);
   set local role authenticated;
 
@@ -371,19 +393,19 @@ begin
     format('{"sub":"%s","role":"authenticated"}', sec_a), true);
   begin
     perform public.accept_invitation('token-de-teste', 'Intruso');
-    insert into resultado values (29, 'Aceite de convite',
+    insert into resultado values (32, 'Aceite de convite',
       'sessao com e-mail diferente aceita', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
   exception when others then
-    insert into resultado values (29, 'Aceite de convite',
+    insert into resultado values (32, 'Aceite de convite',
       'sessao com e-mail diferente aceita', 'BLOQUEADO', 'BLOQUEADO');
   end;
 
   begin
     perform public.accept_invitation('token-chutado', 'Alguem');
-    insert into resultado values (30, 'Aceite de convite',
+    insert into resultado values (33, 'Aceite de convite',
       'token inexistente aceito', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
   exception when others then
-    insert into resultado values (30, 'Aceite de convite',
+    insert into resultado values (33, 'Aceite de convite',
       'token inexistente aceito', 'BLOQUEADO', 'BLOQUEADO');
   end;
 
@@ -392,20 +414,20 @@ begin
   set local role anon;
   begin
     perform public.accept_invitation('token-de-teste', 'Anonimo');
-    insert into resultado values (31, 'Aceite de convite',
+    insert into resultado values (34, 'Aceite de convite',
       'anon chama accept_invitation', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
   exception when others then
-    insert into resultado values (31, 'Aceite de convite',
+    insert into resultado values (34, 'Aceite de convite',
       'anon chama accept_invitation', 'BLOQUEADO', 'BLOQUEADO');
   end;
 
   -- A prévia é pública de propósito, mas não confirma token chutado.
   select count(*) into n from public.invitation_preview('token-chutado');
-  insert into resultado values (32, 'Previa de convite',
+  insert into resultado values (35, 'Previa de convite',
     'previa confirma token invalido', '0', n::text);
 
   select count(*) into n from public.invitation_preview('token-de-teste');
-  insert into resultado values (33, 'Previa de convite',
+  insert into resultado values (36, 'Previa de convite',
     'previa devolve convite valido para anon', '1', n::text);
   set local role authenticated;
 end $$;

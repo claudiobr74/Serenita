@@ -23,6 +23,7 @@ import { ROLES, type Role } from "@/domain/auth/types";
 
 import {
   alterarPapel,
+  arquivarMembro,
   convidarMembro,
   type EstadoMembros,
   revogarConvite,
@@ -70,12 +71,24 @@ export function TabelaDeMembros({
     FormData
   >(revogarConvite, undefined);
 
+  const [estadoArquivar, acaoArquivar, arquivando] = useActionState<
+    EstadoMembros | undefined,
+    FormData
+  >(arquivarMembro, undefined);
+
   const [conviteAberto, setConviteAberto] = useState(false);
   const [emEdicao, setEmEdicao] = useState<Membro | null>(null);
 
-  const erro = estadoConvite?.erro ?? estadoPapel?.erro ?? estadoRevogar?.erro;
+  const erro =
+    estadoConvite?.erro ??
+    estadoPapel?.erro ??
+    estadoRevogar?.erro ??
+    estadoArquivar?.erro;
   const aviso =
-    estadoConvite?.aviso ?? estadoPapel?.aviso ?? estadoRevogar?.aviso;
+    estadoConvite?.aviso ??
+    estadoPapel?.aviso ??
+    estadoRevogar?.aviso ??
+    estadoArquivar?.aviso;
 
   return (
     <Card variant="outlined" className="gap-5 rounded-[20px] p-6">
@@ -309,6 +322,38 @@ export function TabelaDeMembros({
             options={OPCOES_DE_PAPEL}
             defaultValue={emEdicao?.papel ?? ("psychologist" satisfies Role)}
           />
+        </form>
+
+        {/*
+          Arquivar fica separado do formulário de papel, abaixo de um
+          separador: é ação destrutiva e não deve ser confundida com salvar.
+          Não é DELETE — `profiles` não tem policy de DELETE de propósito, e o
+          histórico precisa sobreviver à saída de quem o produziu.
+        */}
+        <hr className="my-5 border-border-default" />
+
+        <form action={acaoArquivar} className="flex flex-col gap-3">
+          <input type="hidden" name="id" value={emEdicao?.id ?? ""} />
+          <input
+            type="hidden"
+            name="arquivar"
+            value={emEdicao?.arquivado ? "nao" : "sim"}
+          />
+          <p className="text-body-sm text-text-secondary">
+            {emEdicao?.arquivado
+              ? "Este membro está arquivado e não consegue acessar a clínica. Restaurar devolve o acesso."
+              : "Arquivar revoga o acesso imediatamente. O histórico e a autoria do que a pessoa registrou são preservados."}
+          </p>
+          <div>
+            <Button
+              type="submit"
+              variant={emEdicao?.arquivado ? "outline" : "danger"}
+              size="md"
+              loading={arquivando}
+            >
+              {emEdicao?.arquivado ? "Restaurar acesso" : "Arquivar membro"}
+            </Button>
+          </div>
         </form>
       </Modal>
     </Card>

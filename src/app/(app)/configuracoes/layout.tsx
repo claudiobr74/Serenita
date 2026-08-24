@@ -1,7 +1,6 @@
-import { redirect } from "next/navigation";
-
 import { requireViewer } from "@/server/auth/session";
 
+import { SECOES, secoesVisiveisPara } from "./secoes";
 import { SecaoAtiva } from "./secao-ativa";
 
 /**
@@ -11,37 +10,21 @@ import { SecaoAtiva } from "./secao-ativa";
  * item px 12 · py 10 · radius 8 · 14 Medium text-secondary
  * ativo: bg surface-hover · SemiBold action-primary
  *
- * As 8 seções são as do frame. Só "Usuários e Acessos" existe nesta fase; as
- * demais chegam com as fases que as implementam e por isso aparecem
- * desabilitadas, e não como links quebrados.
- * Ver docs/DESIGN_DECISIONS.md #28.
+ * **Sem guard de papel aqui.** O Route Map lista `/configuracoes` como Admin,
+ * mas lista `/configuracoes/calendario` como Psychologist — ou seja, o shell é
+ * compartilhado e o papel é por seção, não pela raiz. Guardar tudo como Admin
+ * barraria o psicólogo da própria configuração de calendário na Fase 5, e do
+ * próprio perfil agora. Ver docs/DESIGN_DECISIONS.md #33.
+ *
+ * Cada página guarda a si mesma; aqui só filtramos o que aparece na navegação.
  */
-
-export type SecaoConfig = {
-  readonly rotulo: string;
-  readonly href?: string;
-  readonly fase?: string;
-};
-
-export const SECOES: readonly SecaoConfig[] = [
-  { rotulo: "Perfil profissional", fase: "Fase 3, fatia seguinte" },
-  { rotulo: "Dados da Clínica", href: "/onboarding" },
-  { rotulo: "Profissionais", fase: "Fase 4" },
-  { rotulo: "Usuários e Acessos", href: "/configuracoes/usuarios" },
-  { rotulo: "Google Calendar", fase: "Fase 5" },
-  { rotulo: "Faturamento", fase: "Fase 10" },
-  { rotulo: "Modelos de Prontuário", fase: "Fase 6" },
-  { rotulo: "Segurança e Auditoria", fase: "Fase 10" },
-];
-
 export default async function ConfiguracoesLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // `/configuracoes` inteiro é rota Admin no Route Map.
-  const viewer = await requireViewer();
-  if (viewer.profile.role !== "admin") redirect("/dashboard");
+  const { profile } = await requireViewer();
+  const visiveis = secoesVisiveisPara(profile.role);
 
   return (
     <div className="flex flex-col gap-6 desktop:flex-row">
@@ -50,7 +33,7 @@ export default async function ConfiguracoesLayout({
         className="h-fit w-full shrink-0 rounded-2xl border border-border-default bg-background-primary p-4 desktop:w-[260px]"
       >
         <ul className="flex flex-col gap-1">
-          {SECOES.map((secao) => (
+          {visiveis.map((secao) => (
             <li key={secao.rotulo}>
               {secao.href ? (
                 <SecaoAtiva href={secao.href} rotulo={secao.rotulo} />
@@ -72,3 +55,5 @@ export default async function ConfiguracoesLayout({
     </div>
   );
 }
+
+export { SECOES };

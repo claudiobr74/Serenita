@@ -235,3 +235,77 @@ export async function alterarPapel(
   revalidatePath("/configuracoes/usuarios");
   return { aviso: "Permissões atualizadas." };
 }
+
+/**
+ * Arquiva um membro — remove o acesso sem apagar o histórico.
+ *
+ * Não é DELETE. `profiles` não tem policy de DELETE de propósito: apagar um
+ * perfil levaria junto a autoria de tudo que a pessoa fez, e num produto
+ * clínico a trilha precisa sobreviver à saída de quem a produziu
+ * (ARCHITECTURE.md §14).
+ *
+ * Arquivar já revoga o acesso pelo banco: `current_clinic_id()` filtra
+ * `archived_at is null`, então o perfil arquivado deixa de resolver clínica e
+ * não enxerga mais nada. Há cenário de RLS que trava isso.
+ *
+ * Não está desenhado no Figma — a tabela 6:5111 só tem "Editar permissões".
+ * Ver docs/DESIGN_DECISIONS.md #35.
+ */
+export async function arquivarMembro(
+  _anterior: EstadoMembros | undefined,
+  formData: FormData,
+): Promise<EstadoMembros> {
+  let viewer;
+  try {
+    viewer = await exigirAdmin();
+  } catch {
+    return { erro: "Apenas o administrador pode arquivar membros." };
+  }
+
+  const analise = z
+    .object({ id: z.string().uuid(), arquivar: z.enum(["sim", "nao"]) })
+    .safeParse({
+      id: formData.get("id"),
+      arquivar: formData.get("arquivar"),
+    });
+
+  if (!analise.success) return { erro: "Dados inválidos." };
+
+  const { id, arquivar } = analise.data;
+
+  // Arquivar a si mesmo tira o próprio acesso e, se for o último admin, deixa
+  // a clínica sem ninguém que possa desfazer. A policy permitiria; a regra de
+  // produto não.
+  if (id === viewer.userId) {
+    return {
+      erro: "Você não pode arquivar o próprio acesso. Peça a outro administrador.",
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      archived_at: arquivar === "sim" ? new Date().toISOString() : null,
+      archived_by: arquivar === "sim" ? viewer.userId : null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    return { erro: "Não foi possível alterar o acesso deste membro." };
+  }
+
+  await registrarAuditoria({
+    action: arquivar === "sim" ? "profile.archived" : "profile.restored",
+    resourceType: "profile",
+    resourceId: id,
+  });
+
+  revalidatePath("/configuracoes/usuarios");
+  return {
+    aviso:
+      arquivar === "sim"
+        ? "Membro arquivado. O acesso foi revogado e o histórico preservado."
+        : "Acesso restaurado.",
+  };
+}

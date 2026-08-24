@@ -189,8 +189,11 @@ curl http://localhost:3000/api/health
 - [x] Link do convite devolvido ao admin para repasse manual, enquanto não há provedor de e-mail (#27)
 - [x] Envio de e-mail transacional — porta `EmailProvider` com adaptadores `console` (padrão) e `resend`, mensagem de convite e ADR 005
 - [ ] SMTP próprio no Supabase Auth (magic link e recuperação de senha) — **configuração de painel, não código**: Authentication → Emails → SMTP Settings. O SMTP padrão do Supabase tem limite baixo e não serve para produção
-- [ ] Perfil profissional (seção "Perfil profissional" de Configurações)
-- [ ] Arquivar membro — a RLS já revoga o acesso de perfil arquivado (cenário 19), falta a ação na interface
+- [x] Perfil profissional — `/configuracoes/perfil`, para todos os papéis (#34)
+- [x] Arquivar e restaurar membro, no modal de permissões (#35)
+- [x] Guard de papel movido da raiz de `/configuracoes` para cada seção — a raiz é Admin mas `/configuracoes/calendario` é Psychologist (#33)
+- [x] Migration `20260824204026` — `is_clinical_role()` devolve `false`, nunca `NULL`, para perfil arquivado
+- [x] Suíte de RLS em 36 cenários, executada inteira contra o banco real
 - [ ] E-mail dos membros ativos na tabela (#29) — decisão de modelo pendente
 
 ---

@@ -533,3 +533,55 @@ a regra num lugar auditável. `anon` não pode executá-la.
 Convite inexistente, revogado e já aceito devolvem **a mesma** mensagem, e a
 prévia pública devolve zero linhas para os três — para a rota não virar oráculo
 de convites válidos.
+
+---
+
+## #33 — `/configuracoes` é Admin, mas uma de suas seções é Psychologist
+
+O Route Map lista `/configuracoes` como **Admin** e
+`/configuracoes/calendario` como **Psychologist**. As duas coisas não podem
+valer ao mesmo tempo se o papel for guardado na raiz.
+
+**Decisão:** o shell de Configurações **não tem guard de papel**. Cada página
+guarda a si mesma, e o layout apenas filtra o que aparece na sub-navegação.
+
+Isto corrige um defeito que eu mesmo introduzi na fatia 2: o layout guardava
+tudo como Admin, o que barraria o psicólogo da própria configuração de
+calendário na Fase 5 — e do próprio perfil agora. `/configuracoes` redireciona
+para a primeira seção que o papel enxerga, e não para uma fixa.
+
+## #34 — "Perfil profissional" na sub-navegação, sem rota nem tela
+
+A seção existe no frame 6:5080, mas não há rota no Route Map nem tela desenhada
+em `06 — DESKTOP`.
+
+**Decisão:** criar `/configuracoes/perfil`, disponível a **todos os papéis** —
+cada um edita o seu, e `profiles_update_self` garante isso no banco.
+
+Campos: nome e telefone para todos; CRP e especializações **apenas para
+psicólogo**, porque a própria coluna diz "relevante apenas para role =
+psychologist". Para os outros papéis os campos não são renderizados e a action
+os zera: dado sem significado apareceria como real em telas futuras.
+
+Especializações é campo livre separado por vírgula, e não MultiSelect — o
+primitivo não existe (#6) e exigiria uma lista fechada que ninguém definiu.
+
+O papel é **exibido, não editado**: trocar o próprio papel é bloqueado no banco
+inclusive para admin.
+
+## #35 — Arquivar membro não está desenhado
+
+A tabela de membros (6:5111) só tem "Editar permissões" como ação. Mas a Fase 3
+exige revogar acesso, e `profiles.archived_at` existe desde a Fase 1.
+
+**Decisão:** colocar arquivar/restaurar **dentro do modal de permissões**,
+abaixo de um separador, com variante `danger`. Separado do formulário de papel
+para não ser confundido com salvar.
+
+Não é `DELETE`: `profiles` não tem policy de DELETE de propósito, e apagar
+levaria junto a autoria de tudo que a pessoa registrou. Arquivar já revoga o
+acesso pelo banco — `current_clinic_id()` filtra `archived_at is null` — com
+três cenários de RLS cobrindo isso.
+
+O admin não arquiva a si mesmo: a policy permitiria, mas se fosse o último
+admin a clínica ficaria sem ninguém capaz de desfazer.
