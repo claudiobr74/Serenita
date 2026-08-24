@@ -12,7 +12,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "provisionar": "node --env-file=.env.local scripts/provisionar-clinica.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.5",

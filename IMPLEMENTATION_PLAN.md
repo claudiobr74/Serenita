@@ -76,9 +76,12 @@ Projeto Supabase: `Serenita` — ref `bsaoujbfanluzggjvhfa`, região `us-west-2`
 
 ### Verificação pendente — conectividade em runtime
 
-O sandbox desta sessão bloqueia saída HTTPS para `*.supabase.co` por política de
-rede. As migrations foram aplicadas e verificadas pelo MCP do Supabase (que usa
-outro canal), mas a conexão da aplicação ao banco **não pôde ser exercitada aqui**.
+_(Nota corrigida na Fase 3: a saída HTTPS para `*.supabase.co` **não** está
+bloqueada — o endpoint responde 401, ou seja, é alcançável e apenas exige
+chave. O que falta neste ambiente são as credenciais, não a rede.)_
+
+As migrations foram aplicadas e verificadas pelo MCP do Supabase, mas a conexão
+da aplicação ao banco **não pôde ser exercitada aqui** por falta de chave.
 
 `GET /api/health` faz essa verificação: confirma que o banco responde e que a RLS
 devolve zero linhas de `clinics` sem sessão. Rodar localmente após
@@ -174,7 +177,7 @@ curl http://localhost:3000/api/health
 
 ### Fatia 3 — o que falta para a Fase 3 fechar ⬜
 
-- [ ] **Script de provisionamento** de clínica + primeiro admin, por `service_role`. Sem ele não há como criar a primeira clínica nem semear o usuário que os testes e2e de shell exigem (#26)
+- [x] **Script de provisionamento** de clínica + primeiro admin (`scripts/provisionar-clinica.ts`), por `service_role`, com `--dry-run` e desfazimento em ordem inversa. Documentado em `supabase/seed/README.md`
 - [ ] Aceite de convite — rota que troca o token pelo perfil, fechando o ciclo do convite
 - [ ] Envio de e-mail transacional (convite e recuperação de senha)
 - [ ] Perfil profissional (seção "Perfil profissional" de Configurações)

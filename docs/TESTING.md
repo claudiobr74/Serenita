@@ -179,3 +179,12 @@ quando as telas de auth da Fase 3 começarem a importar o cliente. Se os secrets
 homônimos forem cadastrados no repositório, têm precedência.
 
 A versão do Node vem de `.nvmrc`, para que CI e máquina local não divirjam.
+
+### Testes que exigem sessão
+
+`e2e/shell.spec.ts` precisa de um usuário real com perfil ativo, e por isso é
+pulado quando `E2E_EMAIL` e `E2E_SENHA` não estão definidos — com o motivo
+declarado no relatório, não em silêncio.
+
+Para habilitá-los, semeie o usuário com o script de provisionamento; o passo a
+passo está em `supabase/seed/README.md`.
