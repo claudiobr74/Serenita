@@ -1,11 +1,9 @@
-import { PhasePlaceholder } from "@/components/shell/phase-placeholder";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return (
-    <PhasePlaceholder
-      screen="Configurações"
-      phase="Fase 3 — Auth + Multi-tenancy"
-      figmaNode="6:4701"
-    />
-  );
+/**
+ * `/configuracoes` não tem tela própria no Figma: o frame 6:4989 já abre numa
+ * seção selecionada. Redireciona para a primeira seção implementada.
+ */
+export default function ConfiguracoesPage() {
+  redirect("/configuracoes/usuarios");
 }

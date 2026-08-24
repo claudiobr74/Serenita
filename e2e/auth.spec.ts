@@ -89,3 +89,22 @@ test("as rotas públicas de auth não entram em laço de redirecionamento", asyn
     await expect(page).toHaveURL(new RegExp(`${rota}$`));
   }
 });
+
+test("o logo e o brilho de fundo carregam", async ({ page }) => {
+  await page.goto("/login");
+
+  // O logo é decorativo (alt=""), então é localizado pelo src otimizado.
+  const logo = page.locator('img[src*="logomark"]');
+  await expect(logo).toBeVisible();
+
+  // `naturalWidth > 0` prova que o arquivo carregou, e não que só o <img>
+  // existe — um caminho errado renderiza o elemento e nenhum pixel.
+  await expect
+    .poll(() => logo.evaluate((el: HTMLImageElement) => el.naturalWidth))
+    .toBeGreaterThan(0);
+
+  const brilho = page.locator('img[src*="login-glow"]');
+  await expect
+    .poll(() => brilho.evaluate((el: HTMLImageElement) => el.naturalWidth))
+    .toBeGreaterThan(0);
+});

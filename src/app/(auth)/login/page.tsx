@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 
 import { MENSAGEM } from "@/domain/auth/errors";
 
@@ -35,17 +36,18 @@ export default async function LoginPage({
     <div className="flex w-full flex-col gap-10 rounded-3xl border border-border-default bg-background-primary p-12 shadow-lg">
       <header className="flex flex-col items-center gap-4">
         {/*
-          LogoMark (6:13) — 120px. O PNG exportado do Figma não pôde ser baixado
-          neste ambiente; enquanto `public/brand/logomark.png` não existe, vale
-          o mesmo tratamento de marca já usado na Sidebar, na geometria do
-          frame. Ver docs/DESIGN_DECISIONS.md #21.
+          LogoMark (6:13) — caixa de 120px, `object-contain` para preservar a
+          proporção do lockup. O arquivo tem 1254px; o `next/image` redimensiona
+          e serve formato moderno, então o peso de origem não chega ao usuário.
         */}
-        <span
-          aria-hidden
-          className="grid size-[120px] shrink-0 place-items-center rounded-3xl bg-action-primary font-display text-[56px] font-bold text-text-inverse"
-        >
-          S
-        </span>
+        <Image
+          src="/brand/logomark.png"
+          alt=""
+          width={120}
+          height={120}
+          priority
+          className="size-[120px] shrink-0 object-contain"
+        />
         <h1 className="sr-only">Entrar no Serenità</h1>
         <p className="text-center text-body text-text-secondary">
           Tudo o que você precisa para cuidar dos seus pacientes.

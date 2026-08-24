@@ -64,6 +64,7 @@ declare
   admin_b  constant text := 'bbbb1111-1111-1111-1111-111111111111';
   clinica_a constant uuid := 'c1111111-1111-1111-1111-111111111111';
   clinica_b constant uuid := 'c2222222-2222-2222-2222-222222222222';
+  convite uuid;
   n int;
 begin
   -- ==========================================================================
@@ -263,6 +264,92 @@ begin
   insert into resultado values (19, 'Perfil arquivado',
     'clinica visivel apos arquivamento', '0',
     (select count(*)::text from public.clinics));
+
+  -- ==========================================================================
+  -- Ameaça: convite indevido
+  --
+  -- `invitations` carrega e-mail de pessoa e o papel que ela terá. Não é dado
+  -- para qualquer membro ler, e o convite é o caminho por onde alguém entra na
+  -- clínica — forjá-lo é forjar acesso.
+  -- ==========================================================================
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', admin_a), true);
+
+  insert into public.invitations (clinic_id, email, role, invited_by, token_hash, expires_at)
+  values (clinica_a, 'novo@clinica.com', 'psychologist', admin_a::uuid,
+          'hash-de-teste-1', now() + interval '7 days')
+  returning id into convite;
+  insert into resultado values (20, 'Convite',
+    'admin cria convite', 'PERMITIDO', 'PERMITIDO');
+
+  insert into resultado values (21, 'Convite',
+    'created_at imposto pelo servidor', 'data do servidor',
+    case when (select created_at from public.invitations where id = convite)
+              > now() - interval '5 minutes'
+         then 'data do servidor' else 'RETROAGIU -- REGRESSAO' end);
+
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', sec_a), true);
+
+  select count(*) into n from public.invitations;
+  insert into resultado values (22, 'Convite',
+    'secretaria le convites', '0', n::text);
+
+  begin
+    insert into public.invitations (clinic_id, email, role, invited_by, token_hash, expires_at)
+    values (clinica_a, 'x@y.com', 'admin', sec_a::uuid, 'hash-de-teste-2',
+            now() + interval '7 days');
+    insert into resultado values (23, 'Convite',
+      'secretaria cria convite', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
+  exception when others then
+    insert into resultado values (23, 'Convite',
+      'secretaria cria convite', 'BLOQUEADO', 'BLOQUEADO');
+  end;
+
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', admin_b), true);
+
+  select count(*) into n from public.invitations;
+  insert into resultado values (24, 'Convite cross-tenant',
+    'admin B le convites da clinica A', '0', n::text);
+
+  update public.invitations set revoked_at = now() where id = convite;
+  get diagnostics n = row_count;
+  insert into resultado values (25, 'Convite cross-tenant',
+    'admin B revoga convite da clinica A', '0 linhas', n::text || ' linhas');
+
+  -- `invited_by = auth.uid()` no WITH CHECK: nem admin atribui convite a outro.
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', admin_a), true);
+  begin
+    insert into public.invitations (clinic_id, email, role, invited_by, token_hash, expires_at)
+    values (clinica_a, 'outro@clinica.com', 'secretary', admin_b::uuid,
+            'hash-de-teste-3', now() + interval '7 days');
+    insert into resultado values (26, 'Convite',
+      'admin forja invited_by', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
+  exception when others then
+    insert into resultado values (26, 'Convite',
+      'admin forja invited_by', 'BLOQUEADO', 'BLOQUEADO');
+  end;
+
+  -- O índice parcial usa `lower(email)`: variar a caixa não escapa dele.
+  begin
+    insert into public.invitations (clinic_id, email, role, invited_by, token_hash, expires_at)
+    values (clinica_a, 'NOVO@clinica.com', 'secretary', admin_a::uuid,
+            'hash-de-teste-4', now() + interval '7 days');
+    insert into resultado values (27, 'Convite',
+      'duplicar convite pendente (case-insensitive)', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
+  exception when others then
+    insert into resultado values (27, 'Convite',
+      'duplicar convite pendente (case-insensitive)', 'BLOQUEADO', 'BLOQUEADO');
+  end;
+
+  perform set_config('request.jwt.claims', '', true);
+  set local role anon;
+  select count(*) into n from public.invitations;
+  insert into resultado values (28, 'Leitura anonima',
+    'anon lista convites', '0', n::text);
+  set local role authenticated;
 end $$;
 
 select

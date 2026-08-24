@@ -159,18 +159,27 @@ curl http://localhost:3000/api/health
 - [x] `policy.ts` por domínio, compartilhado UI/server _(já na Fase 1)_
 - [x] **Suíte de testes de RLS** (ADR 001) — 19 cenários em `supabase/tests/rls.sql`
 
-### Fatia 2 — Contas e clínicas ⬜
+### Fatia 2 — Contas e clínicas ✅
 
-- [ ] Onboarding de clínica (`6:5213`) — inclui o caminho privilegiado que cria a primeira clínica e o primeiro admin
-- [ ] Usuários e permissões (`6:4989`)
-- [ ] Convite de membro
-- [ ] Consentimento de cookies LGPD na primeira visita
+- [x] Onboarding de clínica (`6:5213`) — passo 1 de 9, o único desenhado (#25). O wizard **completa** a clínica, não a cria (#26)
+- [x] Migration `20260824190106` — `clinics.cnpj/address/phone/kind/onboarding_completed_at` e a tabela `invitations` com RLS
+- [x] Validação de CNPJ por módulo 11, com máscara na apresentação
+- [x] Usuários e permissões (`6:4989`) — tabela de membros, troca de papel, shell de Configurações
+- [x] Convite de membro — token de 32 bytes, só o SHA-256 no banco. **Envio de e-mail pendente de provedor** (#27)
+- [x] `audit_log` gravado em onboarding, convite, revogação e troca de papel
+- [x] Consentimento de cookies LGPD na primeira visita (#30)
+- [x] Suíte de RLS ampliada para `invitations` — 28 cenários
+- [x] Assets de marca incorporados: `public/brand/logomark.png` e `login-glow.png`, com teste e2e de carregamento
 - [ ] Google OAuth no botão do frame 6:9 _(depende da credencial da Fase 5 — ver `DESIGN_DECISIONS` #20)_
 
-### Pendente de asset
+### Fatia 3 — o que falta para a Fase 3 fechar ⬜
 
-`public/brand/logomark.png` e `public/brand/login-glow.svg` não puderam ser
-baixados do Figma neste ambiente. Geometria reservada. Ver `DESIGN_DECISIONS` #21.
+- [ ] **Script de provisionamento** de clínica + primeiro admin, por `service_role`. Sem ele não há como criar a primeira clínica nem semear o usuário que os testes e2e de shell exigem (#26)
+- [ ] Aceite de convite — rota que troca o token pelo perfil, fechando o ciclo do convite
+- [ ] Envio de e-mail transacional (convite e recuperação de senha)
+- [ ] Perfil profissional (seção "Perfil profissional" de Configurações)
+- [ ] Arquivar membro — a RLS já revoga o acesso de perfil arquivado (cenário 19), falta a ação na interface
+- [ ] E-mail dos membros ativos na tabela (#29) — decisão de modelo pendente
 
 ---
 

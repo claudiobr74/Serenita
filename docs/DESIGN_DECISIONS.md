@@ -348,8 +348,18 @@ centrados e 50px acima do meio para o glow) e ocupar com o tratamento de marca
 que a Sidebar já usa e com um brilho em token. A troca pelos arquivos reais é
 de uma linha em cada ponto.
 
-**Para resolver:** adicionar `public/brand/logomark.png` e
-`public/brand/login-glow.svg`, exportando de 6:13 e 6:10.
+**Resolvido.** O usuário forneceu os dois arquivos diretamente:
+`public/brand/logomark.png` (o lockup completo, marca + wordmark) e
+`public/brand/login-glow.png` — este último com exatamente 600×600, batendo com
+a spec do frame. Ambos entram por `next/image`, que redimensiona e serve
+formato moderno; o logo tem 1254px de origem e nunca chega assim ao usuário.
+Há teste e2e que confere `naturalWidth > 0`, ou seja, que o arquivo carregou de
+fato — e não apenas que o `<img>` existe.
+
+O wordmark do arquivo lê **Serenit_à_** (acento grave), o que resolve a
+ambiguidade do achado 15 da revisão: a marca é "Serenità". A cópia das telas
+segue como está no Figma, inclusive "Entrar no Serenit_á_" (6:33), porque mudar
+texto de interface é decisão de produto, não de implementação.
 
 ## #22 — `/recuperar` sem frame desenhado
 
@@ -360,3 +370,106 @@ até 30s.
 **Decisão:** reusar a moldura do card de login — mesmo container, mesmo
 espaçamento, mesmos primitivos — com cabeçalho e um único campo. Nada de
 invenção visual: é a tela de login com o miolo trocado.
+
+---
+
+## #23 — O card RBAC do frame contradiz a RBAC Matrix
+
+O card "Níveis de Acesso" de `usuarios-permissoes` descreve o Administrador
+como tendo "acesso irrestrito a configurações de clínica, **prontuários de
+todos os membros**, faturamento global e logs" (6:5148).
+
+A RBAC Matrix de `04 — INFORMATION ARCHITECTURE` diz o oposto, em negrito:
+"**Não acessa registros clínicos** (compliance HIPAA/LGPD)". É a mesma regra que
+`FIGMA_AUDIT.md` §7 marca como "ponto crítico de segurança", que
+`is_clinical_role()` aplica no banco, e que tem cenário dedicado na suíte de RLS.
+
+**Decisão:** seguir a RBAC Matrix e reescrever a cópia do card. Exibir o texto
+do frame afirmaria ao usuário uma propriedade de conformidade que é falsa no
+sistema — e num produto clínico isso é pior do que divergir do desenho. Há teste
+que falha se alguém transcrever a cópia original.
+
+## #24 — Papel composto no frame, papel único no modelo
+
+A primeira linha da tabela de membros mostra "Admin, Psicóloga" (6:5114), ou
+seja, dois papéis para a mesma pessoa. `profiles.role` é um enum **único**,
+decidido em #10 a partir do data model do Dev Handoff.
+
+**Decisão:** manter papel único. Multi-papel mudaria o modelo de tenancy, as
+três funções de autorização e toda policy de RLS — e a RBAC Matrix, que é a
+fonte normativa dos papéis, descreve os três como mutuamente exclusivos.
+
+**Caminho de reversão**, se o produto exigir: tabela `profile_roles` (perfil ×
+papel) e `current_profile_role()` virando `current_profile_roles()`, com as
+policies passando a usar `has_role(...)`. As policies mudam, o resto não.
+
+## #25 — Onboarding anuncia 9 passos, só 1 desenhado
+
+O StepCounter diz "PASSO 1 DE 9" (6:5225) e a ProgressBar mostra 53 de 480px,
+≈11%, coerente com 1/9. Mas `06 — DESKTOP` só traz o passo 1.
+
+**Decisão:** implementar o passo 1 com fidelidade, e manter o contador e a barra
+com o total de 9 vindo de `TOTAL_DE_PASSOS`. O "Pular por enquanto" (6:5258) é
+saída válida do wizard, então a aplicação é utilizável com um passo só. Os
+outros 8 entram quando forem desenhados.
+
+## #26 — O onboarding não cria a clínica
+
+`/onboarding` é **Auth + Admin** no Route Map. Um wizard que criasse a clínica
+precisaria rodar sem perfil — não há como ser admin de uma clínica que ainda não
+existe.
+
+**Decisão:** o wizard **completa** uma clínica já provisionada, o que o conteúdo
+do passo 1 confirma (CNPJ, endereço, telefone, tipo — dados de complemento, não
+de criação). A criação de clínica e do primeiro admin é caminho privilegiado,
+por `service_role`, fora do alcance da aplicação. É também o que permite às
+policies não terem `INSERT` em `clinics`.
+
+**Consequência:** falta um script de provisionamento. Sem ele não há como criar
+a primeira clínica, nem semear o usuário que os testes e2e de shell exigem.
+
+## #27 — Convite criado, e-mail ainda não enviado
+
+O convite é gravado em `invitations` com token de 32 bytes, do qual o banco
+guarda só o SHA-256, e aparece na tabela como "Convite Pendente". Mas **o e-mail
+não é enviado**: não há provedor transacional configurado.
+
+**Decisão:** entregar o convite persistido e visível, com a interface dizendo
+explicitamente que o envio depende do provedor. Melhor do que um botão que
+aparenta enviar e não envia.
+
+## #28 — Sub-navegação de Configurações com 8 seções, 1 implementada
+
+O frame 6:5078 traz oito seções. Nesta fase só "Usuários e Acessos" existe, e
+"Dados da Clínica" aponta para o wizard.
+
+**Decisão:** renderizar as oito, com as não implementadas desabilitadas e o
+`title` dizendo em que fase chegam — em vez de omitir ou de criar links
+quebrados. Mesma escolha do botão do Google (#20).
+
+## #29 — Coluna Email vazia para membros ativos
+
+A tabela do frame tem coluna Email (6:5107) preenchida para todos. Mas o e-mail
+mora em `auth.users`, que **não é legível pelo cliente sob RLS**, e `profiles`
+não o espelha.
+
+**Decisão:** exibir o e-mail apenas para convites pendentes, onde ele vive em
+`invitations`, e marcar "—" para membros ativos. As alternativas eram piores:
+duplicar dado pessoal em duas tabelas, ou expor `auth.users`.
+
+**Para resolver:** ou uma view `SECURITY DEFINER` que devolva só o e-mail dos
+perfis da própria clínica, ou aceitar a duplicação com trigger de sincronia.
+Decisão de modelo, não de tela — vale discutir antes da Fase 4.
+
+## #30 — Consentimento de cookies sem opção de rejeitar
+
+A LGPD exige consentimento para cookie não essencial. O Serenità hoje só usa
+cookie de sessão do Supabase, que é estritamente necessário à execução do
+contrato (art. 7º, V) e dispensa consentimento prévio.
+
+**Decisão:** o banner **informa**, não pede permissão, e por isso não tem
+"Rejeitar" — não há nada opcional a rejeitar, e um botão que não faz nada seria
+teatro de conformidade. O reconhecimento fica em `localStorage`, não em cookie.
+
+**Revisitar na Fase 12:** PostHog e Sentry são categoria opcional e vão exigir
+escolha granular, com rejeição real e persistência da preferência.

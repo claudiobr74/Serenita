@@ -1,3 +1,4 @@
+import { ConsentimentoCookies } from "@/components/lgpd/consentimento-cookies";
 import { AppShell } from "@/components/shell/app-shell";
 import { requireViewer } from "@/server/auth/session";
 
@@ -23,8 +24,11 @@ export default async function AppLayout({
   const { profile, clinic } = await requireViewer();
 
   return (
-    <AppShell profile={profile} clinic={clinic} title="Hoje no Serenitá">
-      {children}
-    </AppShell>
+    <>
+      <AppShell profile={profile} clinic={clinic} title="Hoje no Serenitá">
+        {children}
+      </AppShell>
+      <ConsentimentoCookies />
+    </>
   );
 }

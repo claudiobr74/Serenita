@@ -241,6 +241,11 @@ sendo o comportamento correto. Vale renomear ou forçar a checagem anônima.
 
 ### 15 — Grafia da marca inconsistente · **cosmético**
 
+> **Situação: esclarecido.** O arquivo de logo fornecido pelo usuário traz o
+> wordmark "Serenit**à**", com acento grave — essa é a marca. A cópia das telas
+> segue como está no Figma, que usa "Serenit**á**" em alguns rótulos; unificar é
+> decisão de produto e vale uma passada de texto antes da Fase 12.
+
 Convivem "Serenit**à**" (metadata, tokens, docs) e "Serenit**á**"
 (`PLACEHOLDER_CLINIC.name`, dashboard, e2e). O e2e já depende da segunda forma.
 

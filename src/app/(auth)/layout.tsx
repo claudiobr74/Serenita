@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 /**
  * Layout das rotas públicas de autenticação.
  *
@@ -14,16 +16,18 @@ export default function AuthLayout({
   return (
     <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-background-secondary p-8 desktop:p-16">
       {/*
-        BackgroundGlow (6:10) — 600px, centrado, 50px acima do meio.
-        O SVG exportado do Figma não pôde ser baixado neste ambiente (o policy
-        de rede bloqueia o CDN da Figma). Enquanto ele não entra em
-        `public/brand/login-glow.svg`, a geometria fica reservada com o mesmo
-        tamanho e posição, para que a troca seja de uma linha.
-        Ver docs/DESIGN_DECISIONS.md #21.
+        BackgroundGlow (6:10) — 600px, centrado, 50px acima do meio, exatamente
+        a geometria do frame. `max-w-none` impede o reset de imagem responsiva
+        de encolher o brilho em telas estreitas: ele é decoração de fundo e deve
+        transbordar, o que o `overflow-hidden` do container contém.
       */}
-      <div
+      <Image
+        src="/brand/login-glow.png"
+        alt=""
+        width={600}
+        height={600}
         aria-hidden
-        className="pointer-events-none absolute top-[calc(50%-50px)] left-1/2 size-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-surface-hover/40 blur-3xl"
+        className="pointer-events-none absolute top-[calc(50%-50px)] left-1/2 size-[600px] max-w-none -translate-x-1/2 -translate-y-1/2"
       />
       <main className="relative z-10 w-full max-w-[440px]">{children}</main>
     </div>
