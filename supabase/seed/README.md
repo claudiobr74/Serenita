@@ -11,7 +11,7 @@ Os seeds chegam junto com as tabelas que populam, conforme as fases de
 
 ## Provisionar a primeira clínica
 
-`scripts/provisionar-clinica.ts` cria a clínica e seu primeiro administrador.
+`scripts/provisionar-clinica.mts` cria a clínica e seu primeiro administrador.
 
 ### Por que é um script, e não uma tela
 

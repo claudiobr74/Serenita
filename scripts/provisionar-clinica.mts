@@ -16,7 +16,7 @@
  *
  * Uso:
  *
- *     node --env-file=.env.local scripts/provisionar-clinica.ts \
+ *     node --env-file=.env.local scripts/provisionar-clinica.mts \
  *       --clinica "Espaço Serenità" \
  *       --slug espaco-serenita \
  *       --admin-email mariana@clinica.com.br \
@@ -28,6 +28,11 @@
  * passe a senha pela variável `PROVISION_SENHA`.
  *
  * `--dry-run` valida tudo e não escreve nada.
+ *
+ * Extensão `.mts` e não `.ts`: torna o módulo ES explícito para o Node, que de
+ * outro modo avisa `MODULE_TYPELESS_PACKAGE_JSON` a cada execução. A
+ * alternativa seria `"type": "module"` no package.json, que afetaria o
+ * carregamento de toda a aplicação por causa de um script.
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -45,7 +50,7 @@ type Argumentos = {
 
 const USO = `
 Uso:
-  node --env-file=.env.local scripts/provisionar-clinica.ts [opções]
+  node --env-file=.env.local scripts/provisionar-clinica.mts [opções]
 
 Opções obrigatórias:
   --clinica <nome>        Nome da clínica
@@ -141,7 +146,7 @@ function lerAmbiente() {
   if (!url || !chave) {
     erro(
       "NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SECRET_KEY são obrigatórias.\n" +
-        "  Rode com: node --env-file=.env.local scripts/provisionar-clinica.ts ...",
+        "  Rode com: node --env-file=.env.local scripts/provisionar-clinica.mts ...",
     );
   }
 
