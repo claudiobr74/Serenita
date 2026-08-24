@@ -116,3 +116,28 @@ Todo uso é justificado por comentário no ponto de uso.
 | Forja de tenant em escrita  | `WITH CHECK` sobre `clinic_id` em todo `INSERT`                      |
 | Adulteração de auditoria    | `audit_log` sem policy de UPDATE/DELETE + `force row level security` |
 | Vazamento de `service_role` | Ausente do bundle do cliente; validado por `src/lib/env.ts`          |
+
+---
+
+## Nota: `current_role` vs. `current_profile_role`
+
+A função chama-se `current_profile_role()` e **não** `current_role()`, porque
+`current_role` é uma função embutida e palavra reservada do Postgres.
+
+---
+
+## Aviso esperado do database linter
+
+O linter do Supabase reporta
+`authenticated_security_definer_function_executable` para
+`current_clinic_id()`, `current_profile_role()` e `is_clinical_role()`.
+
+**Isso é intencional e não deve ser "corrigido".** As policies de RLS rodam na
+identidade do chamador e precisam que `authenticated` execute essas funções.
+Convertê-las para `SECURITY INVOKER` causaria recursão infinita — elas leem
+`profiles`, que tem RLS.
+
+O que **foi** corrigido é o acesso anônimo: `anon` teve `execute` revogado na
+migration `20260824000002`. Sem sessão as funções retornariam `NULL` de qualquer
+forma, mas função `SECURITY DEFINER` não deve ser alcançável por quem não fez
+login.

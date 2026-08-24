@@ -86,7 +86,7 @@ as $$
     and p.archived_at is null;
 $$;
 
-create or replace function public.current_role()
+create or replace function public.current_profile_role()
 returns profile_role
 language sql
 stable
@@ -98,6 +98,9 @@ as $$
   where p.id = auth.uid()
     and p.archived_at is null;
 $$;
+
+-- Nota: a função se chama `current_profile_role` e não `current_role` porque
+-- `current_role` é uma função embutida e palavra reservada do Postgres.
 
 -- Acesso a conteúdo clínico.
 --
@@ -111,14 +114,14 @@ stable
 security definer
 set search_path = public, pg_temp
 as $$
-  select public.current_role() = 'psychologist';
+  select public.current_profile_role() = 'psychologist';
 $$;
 
 revoke execute on function public.current_clinic_id() from public;
-revoke execute on function public.current_role() from public;
+revoke execute on function public.current_profile_role() from public;
 revoke execute on function public.is_clinical_role() from public;
 grant execute on function public.current_clinic_id() to authenticated;
-grant execute on function public.current_role() to authenticated;
+grant execute on function public.current_profile_role() to authenticated;
 grant execute on function public.is_clinical_role() to authenticated;
 
 -- ----------------------------------------------------------------------------
@@ -159,7 +162,7 @@ create policy clinics_select_own
 create policy clinics_update_admin
   on public.clinics for update
   to authenticated
-  using (id = public.current_clinic_id() and public.current_role() = 'admin')
+  using (id = public.current_clinic_id() and public.current_profile_role() = 'admin')
   with check (id = public.current_clinic_id());
 
 -- ----------------------------------------------------------------------------
@@ -184,22 +187,21 @@ create policy profiles_update_self
   with check (
     id = auth.uid()
     and clinic_id = public.current_clinic_id()
-    and role = (select p.role from public.profiles p where p.id = auth.uid())
+    and role = public.current_profile_role()
   );
 
 create policy profiles_insert_admin
   on public.profiles for insert
   to authenticated
-  using (true)
   with check (
     clinic_id = public.current_clinic_id()
-    and public.current_role() = 'admin'
+    and public.current_profile_role() = 'admin'
   );
 
 create policy profiles_update_admin
   on public.profiles for update
   to authenticated
-  using (clinic_id = public.current_clinic_id() and public.current_role() = 'admin')
+  using (clinic_id = public.current_clinic_id() and public.current_profile_role() = 'admin')
   with check (clinic_id = public.current_clinic_id());
 
 -- Sem policy de DELETE: perfil é arquivado (archived_at), nunca apagado.
@@ -239,7 +241,7 @@ create policy audit_log_select_admin
   to authenticated
   using (
     clinic_id = public.current_clinic_id()
-    and public.current_role() = 'admin'
+    and public.current_profile_role() = 'admin'
   );
 
 create policy audit_log_insert_same_clinic

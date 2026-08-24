@@ -10,11 +10,13 @@ Plano de execução em fases, derivado da auditoria integral do Figma (`docs/FIG
 
 ## Estado atual
 
-| Fase           | Estado                                                                  |
-| -------------- | ----------------------------------------------------------------------- |
-| 0 — Discovery  | ✅ Concluída                                                            |
-| 1 — Foundation | ✅ Concluída, exceto a aplicação da migration — ver bloqueador na Fase 1 |
-| 2–12           | ⬜ Não iniciadas                                                        |
+| Fase           | Estado           |
+| -------------- | ---------------- |
+| 0 — Discovery  | ✅ Concluída     |
+| 1 — Foundation | ✅ Concluída     |
+| 2–12           | ⬜ Não iniciadas |
+
+Projeto Supabase: `Serenita` — ref `bsaoujbfanluzggjvhfa`, região `us-west-2`.
 
 ---
 
@@ -66,33 +68,25 @@ Plano de execução em fases, derivado da auditoria integral do Figma (`docs/FIG
 - [x] `/dev/components` — playground, apenas em development
 - [x] Quality gate: `lint` · `typecheck` · `test` · `build` verdes
 - [x] QA visual do Dashboard contra o frame `6:40`, em desktop (1440×1024) e tablet (1194×834)
-- [ ] **Aplicar a migration num projeto Supabase real** — bloqueado, ver abaixo
+- [x] Migrations aplicadas no projeto Supabase `Serenita` (`bsaoujbfanluzggjvhfa`), RLS confirmada ativa nas 3 tabelas
 
-**Definition of Done:** shell renderiza e bate com o frame `dashboard` (`6:40`); `/dev/components` acessível em dev e ausente em produção; migration aplica limpo com RLS ativa; os quatro comandos passam.
+**Definition of Done:** shell renderiza e bate com o frame `dashboard` (`6:40`); `/dev/components` acessível em dev e ausente em produção; migration aplica limpo com RLS ativa; os quatro comandos passam. **Atendido.**
 
-### 🔴 Bloqueador — projeto Supabase não criado
+### Verificação pendente — conectividade em runtime
 
-A organização `Macedotech Org` atingiu o **limite de 2 projetos gratuitos ativos**
-(`Tesseli` e `Anestflow`). A criação do projeto `Serenita` foi recusada:
+O sandbox desta sessão bloqueia saída HTTPS para `*.supabase.co` por política de
+rede. As migrations foram aplicadas e verificadas pelo MCP do Supabase (que usa
+outro canal), mas a conexão da aplicação ao banco **não pôde ser exercitada aqui**.
 
-> *"The following organization members have reached their maximum limits for the
-> number of active free projects… (2 project limit). To continue, these users will
-> need to either delete, pause or upgrade one or more of these projects."*
+`GET /api/health` faz essa verificação: confirma que o banco responde e que a RLS
+devolve zero linhas de `clinics` sem sessão. Rodar localmente após
+`cp .env.example .env.local` e preencher as chaves:
 
-Nenhum projeto existente foi pausado ou removido — são recursos do usuário e a ação
-é destrutiva.
-
-**Ações possíveis, em ordem de preferência:**
-
-1. Fazer upgrade da organização para um plano pago.
-2. Pausar um projeto existente que não esteja em uso.
-3. Criar o projeto `Serenita` numa outra organização Supabase.
-
-A migration `20260824000001_clinics_and_profiles.sql` já está escrita e é a fonte
-de verdade do schema — assim que houver projeto, ela é aplicada sem alteração.
-
-Isto **não bloqueia** a Fase 2 (Design System), que não depende de banco. Bloqueia
-a Fase 3 (Auth + Multi-tenancy) em diante.
+```bash
+npm run dev
+curl http://localhost:3000/api/health
+# esperado: {"status":"ok","database":"reachable","rlsBlocksAnonymousRead":true}
+```
 
 ---
 

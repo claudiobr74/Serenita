@@ -15,9 +15,13 @@ alteração estrutural é feita manualmente no painel do Supabase.
 
 Nomenclatura: `AAAAMMDDNNNNNN_descricao.sql`.
 
-| Migration                                 | Conteúdo                                                                             |
-| ----------------------------------------- | ------------------------------------------------------------------------------------ |
-| `20260824000001_clinics_and_profiles.sql` | `clinics`, `profiles`, enum `profile_role`, funções de autorização, `audit_log`, RLS |
+| Migration                                            | Conteúdo                                                                             |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `20260824000001_clinics_and_profiles.sql`            | `clinics`, `profiles`, enum `profile_role`, funções de autorização, `audit_log`, RLS |
+| `20260824000002_revoke_anon_from_auth_functions.sql` | Revoga `anon` das funções `SECURITY DEFINER`                                         |
+
+Aplicadas no projeto `Serenita` (ref `bsaoujbfanluzggjvhfa`). RLS confirmada ativa
+em `clinics`, `profiles` e `audit_log`.
 
 Migrations futuras seguem as fases de `IMPLEMENTATION_PLAN.md`.
 
@@ -37,9 +41,9 @@ policies — importante para a imutabilidade de `audit_log`.
 ## Funções de autorização
 
 ```sql
-current_clinic_id()   -- clinic_id do perfil autenticado
-current_role()        -- papel do perfil autenticado
-is_clinical_role()    -- current_role() = 'psychologist'
+current_clinic_id()      -- clinic_id do perfil autenticado
+current_profile_role()   -- papel do perfil autenticado
+is_clinical_role()       -- current_profile_role() = 'psychologist'
 ```
 
 Declaradas `SECURITY DEFINER` com `search_path` fixo e `STABLE`. O `DEFINER` é
@@ -50,7 +54,12 @@ infinita entre policy e função.
 vindo do cliente. Trocar o modelo de tenancy no futuro significa reescrever
 estas três funções, não as dezenas de policies.
 
-`execute` é revogado de `public` e concedido apenas a `authenticated`.
+`execute` é revogado de `public` **e de `anon`**, e concedido apenas a
+`authenticated`. O `revoke ... from public` sozinho não basta: o Supabase concede
+privilégios a `anon` explicitamente, não pela pseudo-role PUBLIC.
+
+A função chama-se `current_profile_role` e não `current_role` porque
+`current_role` é uma função embutida e palavra reservada do Postgres.
 
 ---
 

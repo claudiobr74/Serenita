@@ -2,6 +2,8 @@ import { createBrowserClient } from "@supabase/ssr";
 
 import { env } from "@/lib/env";
 
+import type { Database } from "./database.types";
+
 /**
  * Cliente Supabase para o browser.
  *
@@ -9,7 +11,7 @@ import { env } from "@/lib/env";
  * — ela contorna RLS e daria acesso irrestrito a prontuário.
  */
 export function createSupabaseBrowserClient() {
-  return createBrowserClient(
+  return createBrowserClient<Database>(
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   );
