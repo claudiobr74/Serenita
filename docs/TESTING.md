@@ -31,7 +31,7 @@ ambiente sem deixar resíduo:
 psql "$SUPABASE_DB_URL" -f supabase/tests/rls.sql
 ```
 
-São 36 cenários, um por linha da tabela de ameaças de `AUTHORIZATION.md`, sobre
+São 50 cenários, um por linha da tabela de ameaças de `AUTHORIZATION.md`, sobre
 duas clínicas com os três papéis. Cada um declara o esperado e o obtido; ao
 final, qualquer divergência levanta exceção, o que aborta a transação e
 sinaliza erro para quem chamou.
@@ -188,6 +188,20 @@ declarado no relatório, não em silêncio.
 
 Para habilitá-los, semeie o usuário com o script de provisionamento; o passo a
 passo está em `supabase/seed/README.md`.
+
+`e2e/pacientes.spec.ts` também cria dado real, mas com uma diferença que
+importa: `patients` **não tem policy de DELETE**, por design — a Fase 4 prevê
+exclusão com confirmação e aprovação de admin, que é fluxo próprio. O teste
+arquiva o paciente ao final, e arquivar não apaga.
+
+Consequência prática: o paciente permanece, e o índice `patients_cpf_unico`
+recusa a recriação. O teste então **se pula**, com a mensagem dizendo o que
+fazer, em vez de falhar por um motivo que não é defeito do produto. Para rodar
+de novo, remova o resíduo no banco:
+
+```sql
+delete from public.patients where full_name like 'Paciente E2E %';
+```
 
 `e2e/convite.spec.ts` está no mesmo regime e vai além: ele **cria dado real** no
 banco. Por isso se limpa — revoga o convite ao final e revoga resíduo no início,

@@ -83,6 +83,7 @@ export type Database = {
           logo_url: string | null;
           name: string;
           onboarding_completed_at: string | null;
+          patient_seq: number;
           phone: string | null;
           settings: Json;
           slug: string;
@@ -98,6 +99,7 @@ export type Database = {
           logo_url?: string | null;
           name: string;
           onboarding_completed_at?: string | null;
+          patient_seq?: number;
           phone?: string | null;
           settings?: Json;
           slug: string;
@@ -113,6 +115,7 @@ export type Database = {
           logo_url?: string | null;
           name?: string;
           onboarding_completed_at?: string | null;
+          patient_seq?: number;
           phone?: string | null;
           settings?: Json;
           slug?: string;
@@ -169,6 +172,136 @@ export type Database = {
           {
             foreignKeyName: "invitations_invited_by_fkey";
             columns: ["invited_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      patient_clinical_intake: {
+        Row: {
+          clinic_id: string;
+          created_at: string;
+          created_by: string | null;
+          initial_complaint: string | null;
+          patient_id: string;
+          suggested_frequency: string | null;
+          therapeutic_approach: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          clinic_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          initial_complaint?: string | null;
+          patient_id: string;
+          suggested_frequency?: string | null;
+          therapeutic_approach?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          clinic_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          initial_complaint?: string | null;
+          patient_id?: string;
+          suggested_frequency?: string | null;
+          therapeutic_approach?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "patient_clinical_intake_clinic_id_fkey";
+            columns: ["clinic_id"];
+            isOneToOne: false;
+            referencedRelation: "clinics";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "patient_clinical_intake_patient_id_fkey";
+            columns: ["patient_id"];
+            isOneToOne: true;
+            referencedRelation: "patients";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      patients: {
+        Row: {
+          assigned_psychologist_id: string | null;
+          birth_date: string | null;
+          clinic_id: string;
+          cpf: string | null;
+          created_at: string;
+          created_by: string | null;
+          display_code: string;
+          email: string | null;
+          full_name: string;
+          id: string;
+          ai_consent_at: string | null;
+          modality: Database["public"]["Enums"]["care_modality"] | null;
+          occupation: string | null;
+          phone: string | null;
+          status: Database["public"]["Enums"]["patient_status"];
+          tcle_accepted_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          assigned_psychologist_id?: string | null;
+          birth_date?: string | null;
+          clinic_id: string;
+          cpf?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          display_code: string;
+          email?: string | null;
+          full_name: string;
+          id?: string;
+          ai_consent_at?: string | null;
+          modality?: Database["public"]["Enums"]["care_modality"] | null;
+          occupation?: string | null;
+          phone?: string | null;
+          status?: Database["public"]["Enums"]["patient_status"];
+          tcle_accepted_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          assigned_psychologist_id?: string | null;
+          birth_date?: string | null;
+          clinic_id?: string;
+          cpf?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          display_code?: string;
+          email?: string | null;
+          full_name?: string;
+          id?: string;
+          ai_consent_at?: string | null;
+          modality?: Database["public"]["Enums"]["care_modality"] | null;
+          occupation?: string | null;
+          phone?: string | null;
+          status?: Database["public"]["Enums"]["patient_status"];
+          tcle_accepted_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "patients_assigned_psychologist_id_fkey";
+            columns: ["assigned_psychologist_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "patients_clinic_id_fkey";
+            columns: ["clinic_id"];
+            isOneToOne: false;
+            referencedRelation: "clinics";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "patients_created_by_fkey";
+            columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -264,7 +397,9 @@ export type Database = {
       is_clinical_role: { Args: never; Returns: boolean };
     };
     Enums: {
+      care_modality: "in_person" | "online";
       clinic_kind: "individual" | "multi_professional";
+      patient_status: "active" | "archived" | "discharged";
       profile_role: "psychologist" | "admin" | "secretary";
     };
     CompositeTypes: {
@@ -393,7 +528,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      care_modality: ["in_person", "online"],
       clinic_kind: ["individual", "multi_professional"],
+      patient_status: ["active", "archived", "discharged"],
       profile_role: ["psychologist", "admin", "secretary"],
     },
   },

@@ -15,8 +15,9 @@ Plano de execução em fases, derivado da auditoria integral do Figma (`docs/FIG
 | 0 — Discovery     | ✅ Concluída     |
 | 1 — Foundation    | ✅ Concluída     |
 | 2 — Design System | ✅ Concluída     |
-| 3 — Auth          | 🟡 Em andamento  |
-| 4–12              | ⬜ Não iniciadas |
+| 3 — Auth          | ✅ Concluída     |
+| 4 — Pacientes     | 🟡 Em andamento  |
+| 5–12              | ⬜ Não iniciadas |
 
 Projeto Supabase: `Serenita` — ref `bsaoujbfanluzggjvhfa`, região `us-west-2`.
 
@@ -198,17 +199,27 @@ curl http://localhost:3000/api/health
 
 ---
 
-## Fase 4 — Pacientes
+## Fase 4 — Pacientes 🟡
 
-- [ ] `/pacientes` (`6:496`) — busca por nome/CPF/telefone com debounce 300ms, filtro por status, ordenação
-- [ ] `/pacientes/novo` (`6:5292`) — CPF validado e exibido mascarado
+### Fatia 1 — Cadastro e lista ✅
+
+- [x] Migration `20260824205417` — `patients` com `display_code` PAC-### sequencial por clínica, CPF único, e a RLS que separa os papéis
+- [x] Migration `20260824230536` — `patient_clinical_intake`, a **primeira tabela clínica de verdade**: só o psicólogo designado (#36)
+- [x] `/pacientes` (`6:496`) — busca por nome/CPF/telefone com debounce 300ms, filtro por status e estado na URL
+- [x] `/pacientes/novo` (`6:5292`) — CPF validado por módulo 11 e exibido mascarado
+- [x] Ação Arquivar/Reativar, que o frame pressupõe mas não desenha (#40)
+- [x] Suíte de RLS em 50 cenários, com 14 sobre paciente e conteúdo clínico
+
+### Fatia 2 — Perfil do paciente ⬜
+
 - [ ] `/pacientes/[id]` (`6:783`) — tabs Overview · Prontuário · Plano · Timeline · Documentos
-- [ ] `patients.display_code` — `PAC-###` por clínica (#12)
+- [ ] `/pacientes/[id]` (`6:783`) — tabs Overview · Prontuário · Plano · Timeline · Documentos
+- [x] `patients.display_code` — `PAC-###` por clínica (#12)
 - [ ] `/pacientes/[id]/prontuario` (`6:1658`) e editor (`6:1562`)
 - [ ] `/pacientes/[id]/plano` (`6:1782`)
 - [ ] `/pacientes/[id]/timeline` (`6:1919`)
 - [ ] Autosave 30s / debounce 500ms com badge "Salvo"
-- [ ] RLS: dado clínico só para o psicólogo designado — **admin não vê**
+- [x] RLS: dado clínico só para o psicólogo designado — **admin não vê** _(estabelecido na fatia 1; cada tabela clínica nova repete o padrão)_
 - [ ] Exclusão de paciente com diálogo de confirmação + aprovação de admin
 
 ---

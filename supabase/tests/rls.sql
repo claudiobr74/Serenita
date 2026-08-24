@@ -65,6 +65,7 @@ declare
   clinica_a constant uuid := 'c1111111-1111-1111-1111-111111111111';
   clinica_b constant uuid := 'c2222222-2222-2222-2222-222222222222';
   convite uuid;
+  paciente uuid;
   n int;
 begin
   -- ==========================================================================
@@ -429,6 +430,116 @@ begin
   select count(*) into n from public.invitation_preview('token-de-teste');
   insert into resultado values (36, 'Previa de convite',
     'previa devolve convite valido para anon', '1', n::text);
+  set local role authenticated;
+
+  -- ==========================================================================
+  -- Ameaça: acesso indevido a paciente e a conteúdo clínico
+  --
+  -- Aqui a regra "admin não acessa registro clínico" deixa de ser latente:
+  -- existe tabela clínica de verdade. A separação é por TABELA, não por
+  -- coluna — ver docs/DESIGN_DECISIONS.md #36.
+  --
+  -- `psi_a` foi arquivado no cenário 19, então usamos `admin_a2`, que os
+  -- cenários 3 e 4 deixaram como admin, promovendo-o a psicólogo por um
+  -- caminho privilegiado para poder ser designado.
+  -- ==========================================================================
+  set local role postgres;
+  update public.profiles set role = 'psychologist' where id = admin_a2::uuid;
+  update public.profiles set archived_at = null where id = psi_a::uuid;
+  set local role authenticated;
+
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', admin_a2), true);
+
+  insert into public.patients (clinic_id, full_name, created_by,
+                               assigned_psychologist_id, display_code)
+  values (clinica_a, 'Paciente de Teste', admin_a2::uuid, admin_a2::uuid, 'X')
+  returning id into paciente;
+
+  insert into resultado values (37, 'Paciente',
+    'display_code gerado pelo servidor', 'PAC-001',
+    coalesce((select display_code from public.patients where id = paciente), 'NULO'));
+
+  insert into public.patient_clinical_intake
+    (patient_id, clinic_id, initial_complaint, created_by)
+  values (paciente, clinica_a, 'Queixa clinica sigilosa', admin_a2::uuid);
+  insert into resultado values (38, 'Conteudo clinico',
+    'psicologo designado grava acolhimento', 'PERMITIDO', 'PERMITIDO');
+
+  -- ADMIN: enxerga o paciente, NÃO enxerga o clínico.
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', admin_a), true);
+  select count(*) into n from public.patients;
+  insert into resultado values (39, 'Paciente',
+    'admin enxerga o cadastro do paciente', '1', n::text);
+  select count(*) into n from public.patient_clinical_intake;
+  insert into resultado values (40, 'Admin lendo prontuario',
+    'admin le o acolhimento clinico', '0', n::text);
+
+  begin
+    insert into public.patient_clinical_intake
+      (patient_id, clinic_id, initial_complaint, created_by)
+    values (paciente, clinica_a, 'admin escrevendo', admin_a::uuid);
+    insert into resultado values (41, 'Admin lendo prontuario',
+      'admin grava conteudo clinico', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
+  exception when others then
+    insert into resultado values (41, 'Admin lendo prontuario',
+      'admin grava conteudo clinico', 'BLOQUEADO', 'BLOQUEADO');
+  end;
+
+  -- SECRETÁRIA: idem.
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', sec_a), true);
+  select count(*) into n from public.patients;
+  insert into resultado values (42, 'Paciente',
+    'secretaria enxerga o cadastro', '1', n::text);
+  select count(*) into n from public.patient_clinical_intake;
+  insert into resultado values (43, 'Conteudo clinico',
+    'secretaria le o acolhimento', '0', n::text);
+
+  -- OUTRO PSICÓLOGO: tem papel clínico, mas não é o designado.
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', psi_a), true);
+  insert into resultado values (44, 'Conteudo clinico',
+    'outro psicologo tem papel clinico', 'true', public.is_clinical_role()::text);
+  select count(*) into n from public.patients;
+  insert into resultado values (45, 'Paciente',
+    'psicologo enxerga paciente de colega', '0', n::text);
+  select count(*) into n from public.patient_clinical_intake;
+  insert into resultado values (46, 'Conteudo clinico',
+    'psicologo le acolhimento de colega', '0', n::text);
+
+  -- Ninguém apaga paciente nem registro clínico pela API.
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', admin_a2), true);
+  begin
+    delete from public.patient_clinical_intake where patient_id = paciente;
+    get diagnostics n = row_count;
+    insert into resultado values (47, 'Conteudo clinico',
+      'apagar acolhimento clinico', '0 linhas', n::text || ' linhas');
+  exception when others then
+    insert into resultado values (47, 'Conteudo clinico',
+      'apagar acolhimento clinico', '0 linhas', '0 linhas');
+  end;
+
+  begin
+    delete from public.patients where id = paciente;
+    get diagnostics n = row_count;
+    insert into resultado values (48, 'Paciente',
+      'apagar paciente', '0 linhas', n::text || ' linhas');
+  exception when others then
+    insert into resultado values (48, 'Paciente',
+      'apagar paciente', '0 linhas', '0 linhas');
+  end;
+
+  perform set_config('request.jwt.claims', '', true);
+  set local role anon;
+  select count(*) into n from public.patients;
+  insert into resultado values (49, 'Leitura anonima',
+    'anon lista pacientes', '0', n::text);
+  select count(*) into n from public.patient_clinical_intake;
+  insert into resultado values (50, 'Leitura anonima',
+    'anon le acolhimento clinico', '0', n::text);
   set local role authenticated;
 end $$;
 

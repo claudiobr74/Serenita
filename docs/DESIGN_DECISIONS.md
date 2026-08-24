@@ -585,3 +585,80 @@ três cenários de RLS cobrindo isso.
 
 O admin não arquiva a si mesmo: a policy permitiria, mas se fosse o último
 admin a clínica ficaria sem ninguém capaz de desfazer.
+
+---
+
+## #36 — Conteúdo clínico não mora em `patients`
+
+A RBAC Matrix nega registro clínico ao admin. Até a Fase 4 isso era abstrato:
+não havia tabela clínica. Com pacientes, virou concreto.
+
+**Decisão:** `patients` guarda **apenas dado cadastral**. Todo conteúdo clínico
+vive em tabela própria, com policy própria.
+
+O motivo é mecânico: RLS filtra **linha**, não coluna. Se a demanda inicial
+fosse uma coluna de `patients`, `patients_select` — que devolve linhas para
+admin e secretária, porque eles precisam do cadastro — entregaria o conteúdo
+clínico junto. Não haveria como impedir pela policy; a regra dependeria de cada
+`SELECT` lembrar de omitir a coluna.
+
+Separando por tabela, a regra é verificável e testável. `patient_clinical_intake`
+é a primeira aplicação, com 14 cenários de RLS.
+
+## #37 — Três colunas da lista de pacientes não são renderizadas
+
+O frame 6:496 tem sete colunas. Três não aparecem, por dois motivos distintos:
+
+**Última Sessão e Próxima Sessão** dependem de sessões, que chegam na Fase 5/6.
+Renderizá-las vazias hoje sugeriria que o dado existe e está faltando.
+
+**Pendências Clínicas** é conteúdo clínico. É renderizada apenas para quem tem
+acesso clínico. Exibi-la vazia para um admin seria pior do que omitir: sugeriria
+que existe algo sendo escondido, quando na verdade aquele papel nunca a verá.
+
+No lugar delas entrou **CPF**, mascarado — que o frame não tem na lista, mas que
+`03 — PATTERNS` exige mascarado onde apareça, e é o que distingue homônimos.
+
+## #38 — "Novo paciente" é link, não botão
+
+O `Button` do design system não tem `asChild`, e navegação precisa ser âncora
+para funcionar com clique do meio, abrir em nova aba e ser anunciada como link.
+
+**Decisão:** um `Link` com a aparência do botão primário, com a spec do frame
+(6:582). A alternativa — dar `asChild` ao `Button` — muda um primitivo da Fase 2
+por causa de um caso; se aparecer um terceiro, aí vale.
+
+## #39 — O cadastro de paciente escreve em dois lugares
+
+As três seções do frame 6:5292 não vão para a mesma tabela:
+
+| Seção                      | Destino                       |
+| -------------------------- | ----------------------------- |
+| 1. Dados Pessoais          | `patients`                    |
+| 2. Informações Clínicas    | `patient_clinical_intake`     |
+| 3. Termos & Consentimentos | colunas de gate em `patients` |
+
+A **seção 2 só é renderizada para quem tem acesso clínico**. Não é ocultar por
+estética: a RLS recusaria a escrita de admin ou secretária, e mostrar os campos
+os convidaria a digitar algo que seria descartado.
+
+Os consentimentos viram timestamps em `patients`. Dizem _que_ houve
+consentimento, nunca o que foi dito em sessão — e é o gate que o ADR 003 §5
+exige antes de qualquer chamada a fornecedor de IA. A Fase 9 traz o fluxo
+completo de assinatura; estes campos não o substituem.
+
+**Modalidade** foi acrescentada ao formulário: é coluna da lista (6:590) e não
+havia outra tela onde fosse definida.
+
+## #40 — A lista tem abas de status que nada preenche
+
+O frame traz Todos · Ativos · Arquivados · Encerrados (6:576–6:581), mas
+**nenhuma ação da tabela muda o status**. Duas das três abas nunca teriam
+conteúdo.
+
+**Decisão:** ação Arquivar/Reativar na linha. Não é exclusão — `patients` não
+tem policy de DELETE, e a Fase 4 prevê exclusão com confirmação e aprovação de
+admin, que é fluxo próprio.
+
+Arquivar **não remove da aba Todos**, e isso é intencional: arquivar não é
+apagar. O paciente muda de estado e continua visível onde o filtro o inclui.
