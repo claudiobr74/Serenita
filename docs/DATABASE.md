@@ -13,15 +13,32 @@ Decisões: [`adr/001-multi-tenancy.md`](adr/001-multi-tenancy.md) e
 `supabase/migrations/` é a **única fonte de verdade do schema**. Nenhuma
 alteração estrutural é feita manualmente no painel do Supabase.
 
-Nomenclatura: `AAAAMMDDNNNNNN_descricao.sql`.
+Nomenclatura: `AAAAMMDDHHMMSS_descricao.sql`.
 
-| Migration                                            | Conteúdo                                                                             |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `20260824000001_clinics_and_profiles.sql`            | `clinics`, `profiles`, enum `profile_role`, funções de autorização, `audit_log`, RLS |
-| `20260824000002_revoke_anon_from_auth_functions.sql` | Revoga `anon` das funções `SECURITY DEFINER`                                         |
+| Migration                                              | Conteúdo                                                                             |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `20260824133959_clinics_and_profiles.sql`              | `clinics`, `profiles`, enum `profile_role`, funções de autorização, `audit_log`, RLS |
+| `20260824134046_revoke_anon_from_auth_functions.sql`   | Revoga `anon` das funções `SECURITY DEFINER`                                         |
+| `20260824180540_harden_profile_and_audit_policies.sql` | Admin não altera o próprio papel; autoria e horário da auditoria não são forjáveis   |
 
 Aplicadas no projeto `Serenita` (ref `bsaoujbfanluzggjvhfa`). RLS confirmada ativa
 em `clinics`, `profiles` e `audit_log`.
+
+### A versão do arquivo é a versão do remoto
+
+O nome do arquivo precisa bater **exatamente** com a `version` registrada em
+`supabase_migrations.schema_migrations`. As duas primeiras migrations nasceram
+com versões locais sequenciais (`...000001`, `...000002`) enquanto o remoto
+gravou o timestamp real da aplicação — divergência que faria um `supabase db
+push` tratá-las como pendentes e falhar em `create type ... already exists`.
+Os arquivos foram renomeados para as versões do remoto.
+
+Quando uma migration for aplicada por fora do CLI (por exemplo pelo MCP do
+Supabase), consultar a `version` atribuída e nomear o arquivo local com ela.
+
+O CLI do Supabase ainda não foi inicializado neste repositório — não há
+`supabase/config.toml`. Antes do primeiro `db push` (Fase 12), rodar
+`supabase init` e `supabase link --project-ref bsaoujbfanluzggjvhfa`.
 
 Migrations futuras seguem as fases de `IMPLEMENTATION_PLAN.md`.
 

@@ -14,7 +14,10 @@ o que o `IMPLEMENTATION_PLAN.md` declara concluído com o que de fato existe.
 As Fases 0–2 estão substancialmente entregues e a qualidade do que existe é
 alta. As reivindicações do plano se sustentam quase todas sob verificação.
 
-Restam **duas falhas de autorização no banco** que valem correção antes da
+> **Atualização.** Os achados 1, 2 e 4 foram corrigidos após esta revisão —
+> ver `Situação` em cada um. Os demais seguem abertos.
+
+Restavam **duas falhas de autorização no banco** que valem correção antes da
 Fase 4 (quando tabelas clínicas passam a existir e elas deixam de ser
 latentes), e **quatro lacunas de processo** que fazem o quality gate declarado
 depender de execução manual.
@@ -45,6 +48,12 @@ barreira, como documentado.
 ## Achados
 
 ### 1 — Admin pode se auto-promover e alcançar prontuário · **alta**
+
+> **Situação: corrigido** na migration `20260824180540`.
+> A falha foi primeiro reproduzida contra o banco — o admin virou `psychologist`
+> e `is_clinical_role()` passou a devolver `true`. Depois da correção o mesmo
+> ataque é bloqueado, e seguem funcionando: admin editando o próprio nome,
+> admin mudando o papel de um colega, e outro admin promovendo o primeiro.
 
 `profiles_update_admin` tem `WITH CHECK` apenas sobre `clinic_id`:
 
@@ -84,6 +93,12 @@ Admin continua gerindo o papel dos colegas; deixa de mexer no próprio.
 
 ### 2 — `audit_log` aceita registro forjado por qualquer membro · **média**
 
+> **Situação: corrigido** na migration `20260824180540`.
+> Reproduzido antes: a secretária plantou `patient.deleted` datado de 2020 e
+> atribuído ao admin, e a entrada apareceu para o admin com o nome dele como
+> autor. Depois da correção a inserção forjada é rejeitada e o `created_at`
+> enviado pelo cliente é substituído pelo horário do servidor.
+
 ```sql
 with check (clinic_id = current_clinic_id())
 ```
@@ -107,6 +122,10 @@ pela API REST. Vale restringir as colunas mutáveis por policy ou trigger antes
 do faturamento entrar (Fase 10).
 
 ### 4 — Drift de versão entre migrations locais e remotas · **média (operacional)**
+
+> **Situação: corrigido.** Os arquivos locais foram renomeados para as versões
+> do remoto. Convenção registrada em `docs/DATABASE.md`. O `supabase init` /
+> `link` continua pendente e está anotado lá.
 
 | Local                                            | Remoto                                           |
 | ------------------------------------------------ | ------------------------------------------------ |
@@ -224,14 +243,15 @@ tratados pela migration `...0002`.
 
 Antes de abrir a Fase 3:
 
-1. Achados **1** e **2** — as duas policies. São duas linhas de SQL, e ambas
-   ficam mais caras depois que houver dado clínico.
-2. Achado **4** — reconciliar as versões das migrations enquanto são duas.
-3. Achado **5** — workflow de CI com os quatro comandos do gate.
+1. ~~Achados **1** e **2** — as duas policies.~~ **Feito.**
+2. ~~Achado **4** — reconciliar as versões das migrations.~~ **Feito.**
+3. Achado **5** — workflow de CI com os quatro comandos do gate. **Aberto.**
 
-Junto com a Fase 3, que já prevê a suíte de testes de RLS (ADR 001): escrever o
-teste que exercita a auto-promoção do achado 1 antes da correção, para que ele
-falhe primeiro.
+Junto com a Fase 3, que já prevê a suíte de testes de RLS (ADR 001): portar
+para a suíte os cenários que hoje só existem como verificação manual desta
+revisão — os três ataques (auto-promoção, forja de autoria, retroação de data)
+e os quatro casos legítimos que a correção não podia quebrar. Enquanto não
+estiverem na suíte, nada impede a regressão.
 
 Fica para a Fase 11, sem urgência: achados 6, 7 e 10 (contraste automatizado,
 browser do Playwright, cobertura dos componentes de comportamento).

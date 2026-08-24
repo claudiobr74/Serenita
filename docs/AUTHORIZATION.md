@@ -73,9 +73,24 @@ que uma escrita forje o tenant.
 
 ## Escalação de privilégio
 
-A policy `profiles_update_self` permite que cada um edite o próprio perfil, mas
-o `WITH CHECK` exige que o `role` permaneça igual ao valor atual. Auto-promoção
-é bloqueada no banco, não apenas na UI.
+Duas policies governam `UPDATE` em `profiles`, e **as duas** precisam pinar o
+`role` — policies permissivas do Postgres são combinadas por **OR**, então um
+`WITH CHECK` estrito numa delas não restringe quem já é autorizado pela outra.
+
+- `profiles_update_self` — cada um edita o próprio perfil, com `WITH CHECK`
+  exigindo `role = current_profile_role()`.
+- `profiles_update_admin` — admin edita qualquer perfil da própria clínica,
+  **exceto o papel do seu próprio**: `id <> auth.uid() or role =
+current_profile_role()`.
+
+Auto-promoção é bloqueada no banco, não apenas na UI — para todos os papéis,
+`admin` inclusive. Trocar o papel de um admin exige **outro** admin, o que
+torna a mudança um ato de duas pessoas em vez de um privilégio autoconcedido.
+
+Isso importa porque `admin` não tem acesso clínico: sem a restrição, bastaria
+um `update profiles set role = 'psychologist' where id = auth.uid()` para
+contornar a regra inteira. Corrigido na migration `20260824180540`; ver
+`docs/REVIEW_FASES_0_2.md` achado 1.
 
 Apenas `admin` altera papéis, e apenas dentro da própria clínica.
 
@@ -107,15 +122,16 @@ Todo uso é justificado por comentário no ponto de uso.
 
 ## Ameaças cobertas
 
-| Ameaça                      | Defesa                                                               |
-| --------------------------- | -------------------------------------------------------------------- |
-| IDOR                        | RLS por `clinic_id`; ID conhecido não basta                          |
-| Acesso cross-tenant         | `current_clinic_id()` em toda policy                                 |
-| Escalação de privilégio     | `WITH CHECK` sobre `role` em `profiles`                              |
-| Admin lendo prontuário      | `is_clinical_role()` nas policies clínicas                           |
-| Forja de tenant em escrita  | `WITH CHECK` sobre `clinic_id` em todo `INSERT`                      |
-| Adulteração de auditoria    | `audit_log` sem policy de UPDATE/DELETE + `force row level security` |
-| Vazamento de `service_role` | Ausente do bundle do cliente; validado por `src/lib/env.ts`          |
+| Ameaça                        | Defesa                                                                      |
+| ----------------------------- | --------------------------------------------------------------------------- |
+| IDOR                          | RLS por `clinic_id`; ID conhecido não basta                                 |
+| Acesso cross-tenant           | `current_clinic_id()` em toda policy                                        |
+| Escalação de privilégio       | `WITH CHECK` sobre `role` nas **duas** policies de UPDATE de `profiles`     |
+| Admin lendo prontuário        | `is_clinical_role()` nas policies clínicas                                  |
+| Forja de tenant em escrita    | `WITH CHECK` sobre `clinic_id` em todo `INSERT`                             |
+| Adulteração de auditoria      | `audit_log` sem policy de UPDATE/DELETE + `force row level security`        |
+| Forja de entrada na auditoria | `WITH CHECK` exige `user_id = auth.uid()`; `created_at` imposto por trigger |
+| Vazamento de `service_role`   | Ausente do bundle do cliente; validado por `src/lib/env.ts`                 |
 
 ---
 
