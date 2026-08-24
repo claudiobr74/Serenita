@@ -243,10 +243,23 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      accept_invitation: {
+        Args: { convite_token: string; nome_completo: string };
+        Returns: string;
+      };
       current_clinic_id: { Args: never; Returns: string };
       current_profile_role: {
         Args: never;
         Returns: Database["public"]["Enums"]["profile_role"];
+      };
+      invitation_preview: {
+        Args: { convite_token: string };
+        Returns: {
+          clinica: string;
+          papel: Database["public"]["Enums"]["profile_role"];
+          email: string;
+          expirado: boolean;
+        }[];
       };
       is_clinical_role: { Args: never; Returns: boolean };
     };

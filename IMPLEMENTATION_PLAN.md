@@ -185,7 +185,8 @@ curl http://localhost:3000/api/health
 ### Fatia 3 — o que falta para a Fase 3 fechar ⬜
 
 - [x] **Script de provisionamento** de clínica + primeiro admin (`scripts/provisionar-clinica.mts`), por `service_role`, com `--dry-run` e desfazimento em ordem inversa. Documentado em `supabase/seed/README.md`
-- [ ] Aceite de convite — rota que troca o token pelo perfil, fechando o ciclo do convite
+- [x] Aceite de convite — `/convite/[token]` pública, com `accept_invitation` (`SECURITY DEFINER`, atômica) e `invitation_preview`. O token sozinho não basta: exige sessão com o e-mail do convite (#32)
+- [x] Link do convite devolvido ao admin para repasse manual, enquanto não há provedor de e-mail (#27)
 - [ ] Envio de e-mail transacional (convite e recuperação de senha)
 - [ ] Perfil profissional (seção "Perfil profissional" de Configurações)
 - [ ] Arquivar membro — a RLS já revoga o acesso de perfil arquivado (cenário 19), falta a ação na interface

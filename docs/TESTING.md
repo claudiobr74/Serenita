@@ -31,7 +31,7 @@ ambiente sem deixar resíduo:
 psql "$SUPABASE_DB_URL" -f supabase/tests/rls.sql
 ```
 
-São 28 cenários, um por linha da tabela de ameaças de `AUTHORIZATION.md`, sobre
+São 33 cenários, um por linha da tabela de ameaças de `AUTHORIZATION.md`, sobre
 duas clínicas com os três papéis. Cada um declara o esperado e o obtido; ao
 final, qualquer divergência levanta exceção, o que aborta a transação e
 sinaliza erro para quem chamou.

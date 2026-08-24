@@ -165,3 +165,5 @@ Categoria própria na suíte, com um caso por cenário:
 - tentativa de auto-promoção de papel em `profiles`
 
 Ver `TESTING.md`.
+| `20260824200209_accept_invitation.sql` | `accept_invitation()` — troca token por perfil, exigindo e-mail correspondente |
+| `20260824200850_invitation_preview.sql` | `invitation_preview()` — prévia pública do convite, sem confirmar token inválido |

@@ -116,6 +116,32 @@ export function TabelaDeMembros({
         />
       )}
 
+      {/*
+        O link é a ÚNICA cópia do token em claro — o banco só tem o SHA-256.
+        Enquanto não há provedor de e-mail, ele precisa ficar visível e copiável
+        aqui; fechar a tela sem copiar torna o convite inalcançável, e aí só
+        resta revogar e refazer. O aviso diz isso, em vez de deixar a pessoa
+        descobrir depois. Ver docs/DESIGN_DECISIONS.md #27.
+      */}
+      {estadoConvite?.linkDeConvite && (
+        <div className="flex flex-col gap-2 rounded-xl border border-status-warning bg-status-warning-bg p-4">
+          <p className="text-body-sm font-semibold text-status-warning-text">
+            Copie o link agora — ele não é exibido de novo
+          </p>
+          <p className="text-caption text-text-secondary">
+            Ainda não há envio automático de e-mail. Repasse este link para a
+            pessoa convidada.
+          </p>
+          <input
+            readOnly
+            value={estadoConvite.linkDeConvite}
+            aria-label="Link do convite"
+            onFocus={(evento) => evento.currentTarget.select()}
+            className="w-full rounded-md border border-border-default bg-background-primary px-3 py-2 font-mono text-caption text-text-primary"
+          />
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-xl border border-border-default">
         <Table>
           <TableHead>

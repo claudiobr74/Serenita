@@ -350,6 +350,64 @@ begin
   insert into resultado values (28, 'Leitura anonima',
     'anon lista convites', '0', n::text);
   set local role authenticated;
+
+  -- ==========================================================================
+  -- Ameaça: aceite de convite indevido
+  --
+  -- REGRA CENTRAL: o token sozinho não basta. Aceitar exige token válido E
+  -- sessão cujo e-mail seja o do convite — quem intercepta o link não entra
+  -- sem também controlar a caixa postal.
+  -- ==========================================================================
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', admin_a), true);
+
+  insert into public.invitations (clinic_id, email, role, invited_by, token_hash, expires_at)
+  values (clinica_a, 'aceite@teste.local', 'psychologist', admin_a::uuid,
+          encode(extensions.digest('token-de-teste', 'sha256'), 'hex'),
+          now() + interval '7 days');
+
+  -- `psi_a` foi arquivado no cenário 19 e tem e-mail diferente do convite.
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', sec_a), true);
+  begin
+    perform public.accept_invitation('token-de-teste', 'Intruso');
+    insert into resultado values (29, 'Aceite de convite',
+      'sessao com e-mail diferente aceita', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
+  exception when others then
+    insert into resultado values (29, 'Aceite de convite',
+      'sessao com e-mail diferente aceita', 'BLOQUEADO', 'BLOQUEADO');
+  end;
+
+  begin
+    perform public.accept_invitation('token-chutado', 'Alguem');
+    insert into resultado values (30, 'Aceite de convite',
+      'token inexistente aceito', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
+  exception when others then
+    insert into resultado values (30, 'Aceite de convite',
+      'token inexistente aceito', 'BLOQUEADO', 'BLOQUEADO');
+  end;
+
+  -- `anon` não deve nem alcançar a função.
+  perform set_config('request.jwt.claims', '', true);
+  set local role anon;
+  begin
+    perform public.accept_invitation('token-de-teste', 'Anonimo');
+    insert into resultado values (31, 'Aceite de convite',
+      'anon chama accept_invitation', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
+  exception when others then
+    insert into resultado values (31, 'Aceite de convite',
+      'anon chama accept_invitation', 'BLOQUEADO', 'BLOQUEADO');
+  end;
+
+  -- A prévia é pública de propósito, mas não confirma token chutado.
+  select count(*) into n from public.invitation_preview('token-chutado');
+  insert into resultado values (32, 'Previa de convite',
+    'previa confirma token invalido', '0', n::text);
+
+  select count(*) into n from public.invitation_preview('token-de-teste');
+  insert into resultado values (33, 'Previa de convite',
+    'previa devolve convite valido para anon', '1', n::text);
+  set local role authenticated;
 end $$;
 
 select

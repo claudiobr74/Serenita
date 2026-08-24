@@ -438,6 +438,14 @@ não é enviado**: não há provedor transacional configurado.
 explicitamente que o envio depende do provedor. Melhor do que um botão que
 aparenta enviar e não envia.
 
+**Complemento, com o aceite implementado:** o link agora é **devolvido ao admin**
+para repasse manual. Isso importa porque o token em claro existe uma única vez —
+o banco só tem o SHA-256, então nem o próprio sistema consegue reconstruí-lo. A
+interface avisa que fechar a tela sem copiar torna o convite inalcançável, caso
+em que resta revogar e refazer.
+
+Quando o provedor entrar, o link deixa de ser exibido e passa a ir por e-mail.
+
 ## #28 — Sub-navegação de Configurações com 8 seções, 1 implementada
 
 O frame 6:5078 traz oito seções. Nesta fase só "Usuários e Acessos" existe, e
@@ -473,3 +481,52 @@ teatro de conformidade. O reconhecimento fica em `localStorage`, não em cookie.
 
 **Revisitar na Fase 12:** PostHog e Sentry são categoria opcional e vão exigir
 escolha granular, com rejeição real e persistência da preferência.
+
+---
+
+## #31 — Aceite de convite sem tela desenhada
+
+O fluxo de convite aparece na tabela de membros (6:5135, linha "Convite
+Pendente"), mas **a tela que o convidado vê não foi desenhada** — nem em
+`06 — DESKTOP` nem no Route Map.
+
+**Decisão:** reusar a moldura do card de login, como em `/recuperar` (#22).
+Mesma largura, mesmo container, mesmos primitivos.
+
+A rota é `/convite/[token]` e é **pública**, registrada em `ROTAS_PUBLICAS` do
+`proxy.ts`: quem chega ainda não tem conta, e tratá-la como protegida mandaria o
+convidado para o login — de onde ele nunca voltaria ao convite. Há teste e2e
+para isso, porque é o tipo de regressão que passa despercebida.
+
+`robots: noindex` na metadata: link de convite não deve entrar em índice de
+busca.
+
+## #32 — O token de convite sozinho não dá acesso
+
+Poderia bastar o token: quem tem o link, entra. É como muitos produtos fazem.
+
+**Decisão:** exigir token válido **e** sessão autenticada cujo e-mail seja o do
+convite. `accept_invitation` lê o e-mail de `auth.users`, nunca de parâmetro.
+
+O motivo é o dado que está do outro lado. Um convite de `psychologist` dá acesso
+clínico; um link vazado por encaminhamento, log de proxy ou histórico de browser
+não pode ser suficiente para alguém entrar numa clínica e ler prontuário. Com a
+checagem de e-mail, quem intercepta o link ainda precisa da caixa postal.
+
+O custo é real: quem foi convidado precisa conseguir acessar aquele e-mail. É o
+custo certo para este produto.
+
+### Por que uma função `SECURITY DEFINER`, e não `service_role`
+
+Quem aceita ainda não é membro, então `profiles_insert_admin` o barra — o mesmo
+ovo-e-galinha do provisionamento (#26). Mas aqui não cabe script operado por
+pessoa: é o convidado que age.
+
+As opções eram uma rota com `service_role` ou uma função no banco. A função
+ganha em três pontos: é **atômica** (perfil, marcação de aceito e auditoria numa
+transação só), mantém a chave que contorna RLS **fora da aplicação**, e concentra
+a regra num lugar auditável. `anon` não pode executá-la.
+
+Convite inexistente, revogado e já aceito devolvem **a mesma** mensagem, e a
+prévia pública devolve zero linhas para os três — para a rota não virar oráculo
+de convites válidos.

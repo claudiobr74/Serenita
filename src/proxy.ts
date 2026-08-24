@@ -26,7 +26,14 @@ import { createSupabaseProxyClient } from "@/server/supabase/proxy";
  */
 
 /** Rotas alcançáveis sem sessão. */
-const ROTAS_PUBLICAS = ["/login", "/recuperar", "/redefinir", "/auth"];
+const ROTAS_PUBLICAS = [
+  "/login",
+  "/recuperar",
+  "/redefinir",
+  "/auth",
+  // Quem chega pelo convite ainda não tem conta.
+  "/convite",
+];
 
 function ehRotaPublica(pathname: string): boolean {
   return ROTAS_PUBLICAS.some(

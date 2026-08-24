@@ -108,3 +108,19 @@ test("o logo e o brilho de fundo carregam", async ({ page }) => {
     .poll(() => brilho.evaluate((el: HTMLImageElement) => el.naturalWidth))
     .toBeGreaterThan(0);
 });
+
+test("convite inválido não vira oráculo nem exige sessão", async ({ page }) => {
+  // A rota é pública de propósito: quem chega ainda não tem conta. Se o proxy
+  // a tratasse como protegida, o convidado seria mandado ao login e nunca
+  // conseguiria aceitar — o fluxo inteiro morreria aqui.
+  const resposta = await page.goto("/convite/token-que-nao-existe");
+
+  expect(resposta?.status()).toBe(200);
+  await expect(page).not.toHaveURL(/\/login/);
+  await expect(
+    page.getByRole("heading", { name: "Convite indisponível" }),
+  ).toBeVisible();
+
+  // Token cancelado, já usado e inexistente precisam ser indistinguíveis.
+  await expect(page.getByText(/não é mais válido/i)).toBeVisible();
+});

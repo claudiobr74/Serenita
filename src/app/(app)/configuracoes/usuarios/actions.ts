@@ -18,7 +18,19 @@ import { createSupabaseServerClient } from "@/server/supabase/server";
  * na UI (que nem renderiza a ação). Server Action é endpoint público.
  */
 
-export type EstadoMembros = { erro?: string; aviso?: string };
+export type EstadoMembros = {
+  erro?: string;
+  aviso?: string;
+  /**
+   * Link de convite, devolvido ao admin para repasse manual.
+   *
+   * Enquanto não há provedor de e-mail transacional, o token em claro só existe
+   * neste retorno — o banco guarda apenas o SHA-256. Se o admin fechar a tela
+   * sem copiar, o convite fica inalcançável e precisa ser revogado e refeito.
+   * Ver docs/DESIGN_DECISIONS.md #27.
+   */
+  linkDeConvite?: string;
+};
 
 /** Validade do convite. Curta o bastante para limitar a janela de uso indevido. */
 const VALIDADE_DO_CONVITE_EM_DIAS = 7;
@@ -95,12 +107,26 @@ export async function convidarMembro(
 
   revalidatePath("/configuracoes/usuarios");
 
-  // O envio do e-mail entra junto com o provedor de e-mail transacional. Até
-  // lá o convite existe e aparece na tabela, mas o link não foi entregue.
-  // Ver docs/DESIGN_DECISIONS.md #27.
+  // Sem provedor de e-mail, o link é devolvido ao admin para repasse manual.
+  // É a única vez que o token em claro existe: o banco só tem o hash.
   return {
-    aviso: `Convite criado para ${email}. O envio por e-mail entra com o provedor transacional.`,
+    aviso: `Convite criado para ${email}.`,
+    linkDeConvite: `${await origemDaRequisicao()}/convite/${token}`,
   };
+}
+
+/**
+ * Origem absoluta desta requisição.
+ *
+ * Derivada dos cabeçalhos para funcionar em preview da Vercel, domínio próprio
+ * e localhost sem uma variável de ambiente por ambiente.
+ */
+async function origemDaRequisicao(): Promise<string> {
+  const { headers } = await import("next/headers");
+  const lista = await headers();
+  const host = lista.get("x-forwarded-host") ?? lista.get("host");
+  const protocolo = lista.get("x-forwarded-proto") ?? "https";
+  return `${protocolo}://${host}`;
 }
 
 /** "Cancelar convite" (6:5142) — revoga, não apaga. */
