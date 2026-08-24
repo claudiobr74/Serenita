@@ -132,3 +132,29 @@ npm run build
 
 Nenhum milestone é considerado pronto com erro de TypeScript, erro relevante de
 lint, build quebrado ou teste crítico falhando.
+
+### Na integração contínua
+
+`.github/workflows/ci.yml` roda o gate a cada push e a cada pull request, em
+dois jobs paralelos:
+
+| Job         | Conteúdo                                                 |
+| ----------- | -------------------------------------------------------- |
+| `qualidade` | `lint` · `typecheck` · `format:check` · `test` · `build` |
+| `e2e`       | Playwright em Desktop (1440×1024) e Tablet (1194×834)    |
+
+Os passos de `qualidade` usam `if: !cancelled()`, então rodam mesmo depois de
+um passo vermelho: um push com três problemas revela os três de uma vez, em vez
+de exigir três rodadas.
+
+O job `e2e` instala o próprio Chromium (`playwright install --with-deps`), casado
+com a versão de `@playwright/test` do `package-lock.json`. Em ambiente com
+Chromium pré-instalado numa revisão diferente, apontar `PLAYWRIGHT_CHROMIUM_PATH`
+para o binário disponível — `playwright.config.ts` já lê essa variável.
+
+O build recebe `NEXT_PUBLIC_SUPABASE_*` de fachada. Nenhum job fala com o
+Supabase: são apenas o suficiente para a validação de `src/lib/env.ts` passar
+quando as telas de auth da Fase 3 começarem a importar o cliente. Se os secrets
+homônimos forem cadastrados no repositório, têm precedência.
+
+A versão do Node vem de `.nvmrc`, para que CI e máquina local não divirjam.

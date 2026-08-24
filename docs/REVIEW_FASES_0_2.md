@@ -14,7 +14,7 @@ o que o `IMPLEMENTATION_PLAN.md` declara concluído com o que de fato existe.
 As Fases 0–2 estão substancialmente entregues e a qualidade do que existe é
 alta. As reivindicações do plano se sustentam quase todas sob verificação.
 
-> **Atualização.** Os achados 1, 2 e 4 foram corrigidos após esta revisão —
+> **Atualização.** Os achados 1, 2, 4, 5 e 7 foram corrigidos após esta revisão —
 > ver `Situação` em cada um. Os demais seguem abertos.
 
 Restavam **duas falhas de autorização no banco** que valem correção antes da
@@ -143,6 +143,10 @@ arquivos locais para as versões remotas (ou reconciliando a tabela
 
 ### 5 — Não existe CI · **média (processo)**
 
+> **Situação: corrigido.** `.github/workflows/ci.yml` roda o gate a cada push e
+> pull request, em dois jobs paralelos (`qualidade` e `e2e`). Detalhes em
+> `docs/TESTING.md`.
+
 Não há `.github/workflows`. O quality gate que a Definition of Done exige em
 toda fase só acontece se alguém rodar os quatro comandos à mão. Com 12 fases
 pela frente e DoD por tela, é a lacuna com maior efeito composto.
@@ -160,6 +164,11 @@ propriedade "nenhuma combinação abaixo de 4.5:1". A próxima regressão de
 contraste volta a ser invisível.
 
 ### 7 — A suíte e2e não executa neste ambiente · **baixa**
+
+> **Situação: corrigido.** A suíte estava íntegra — faltava só o browser. Com o
+> Chromium disponível apontado por `PLAYWRIGHT_CHROMIUM_PATH`, os 8 testes
+> passam nos dois viewports. No CI o job `e2e` instala a revisão casada com o
+> `package-lock.json`, o que remove a divergência na origem.
 
 `npx playwright test` → 8 de 8 falham antes de qualquer asserção:
 
@@ -245,7 +254,11 @@ Antes de abrir a Fase 3:
 
 1. ~~Achados **1** e **2** — as duas policies.~~ **Feito.**
 2. ~~Achado **4** — reconciliar as versões das migrations.~~ **Feito.**
-3. Achado **5** — workflow de CI com os quatro comandos do gate. **Aberto.**
+3. ~~Achado **5** — workflow de CI com os quatro comandos do gate.~~ **Feito.**
+
+Com o CI no lugar, os achados restantes passam a ser detectáveis por automação
+em vez de por inspeção: o **6** (contraste) é o próximo candidato natural a
+virar passo do job `qualidade`.
 
 Junto com a Fase 3, que já prevê a suíte de testes de RLS (ADR 001): portar
 para a suíte os cenários que hoje só existem como verificação manual desta

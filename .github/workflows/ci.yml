@@ -1,0 +1,123 @@
+# ============================================================================
+# Quality gate do Serenità
+#
+# Roda os quatro comandos que o IMPLEMENTATION_PLAN.md exige em toda fase
+# (`lint` · `typecheck` · `test` · `build`), mais `format:check` e a suíte e2e.
+#
+# Motivação: docs/REVIEW_FASES_0_2.md, achado 5 — até aqui o gate só existia se
+# alguém lembrasse de rodá-lo à mão. Com 12 fases e Definition of Done por
+# tela, é a lacuna com maior efeito composto.
+# ============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+# Um push novo cancela a execução anterior do mesmo ref. Em PR, o `head_ref`
+# distingue a execução de PR da execução de push no mesmo commit.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # A validação de `src/lib/env.ts` roda na importação do cliente Supabase.
+  # Hoje nenhuma rota estática o importa e o build passa sem variável alguma —
+  # mas isso muda na Fase 3, quando as telas de auth entrarem. Os placeholders
+  # mantêm o build determinístico sem expor credencial; se os secrets forem
+  # cadastrados no repositório, eles têm precedência.
+  #
+  # São valores de fachada: nenhum job aqui fala com o Supabase de verdade.
+  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'placeholder-publishable-key' }}
+
+jobs:
+  # --------------------------------------------------------------------------
+  # O gate declarado na Definition of Done.
+  # --------------------------------------------------------------------------
+  qualidade:
+    name: Qualidade
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # Cada passo roda mesmo que o anterior falhe (`if: !cancelled()`), para
+      # que um lint quebrado não esconda um teste quebrado. Um push com três
+      # problemas deve revelar os três de uma vez.
+      - name: Lint
+        if: ${{ !cancelled() }}
+        run: npm run lint
+
+      - name: Typecheck
+        if: ${{ !cancelled() }}
+        run: npm run typecheck
+
+      - name: Formatação
+        if: ${{ !cancelled() }}
+        run: npm run format:check
+
+      - name: Testes unitários e de componente
+        if: ${{ !cancelled() }}
+        run: npm test
+
+      - name: Build
+        if: ${{ !cancelled() }}
+        run: npm run build
+
+  # --------------------------------------------------------------------------
+  # E2E em Desktop (1440x1024) e Tablet (1194x834), os dois breakpoints que o
+  # Figma exige na Definition of Done.
+  #
+  # Job separado para rodar em paralelo com `qualidade`: a instalação do
+  # browser é o passo mais lento e não deve atrasar o retorno do gate.
+  # --------------------------------------------------------------------------
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # A revisão do Chromium é casada com a versão do @playwright/test do
+      # package-lock. Instalar por aqui evita a divergência que deixou a suíte
+      # sem browser em ambientes com Chromium pré-instalado (achado 7).
+      - name: Instalar Chromium do Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Testes e2e
+        run: npm run test:e2e
+
+      - name: Guardar o relatório em caso de falha
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
