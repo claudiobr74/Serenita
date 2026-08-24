@@ -74,23 +74,30 @@ Projeto Supabase: `Serenita` — ref `bsaoujbfanluzggjvhfa`, região `us-west-2`
 
 **Definition of Done:** shell renderiza e bate com o frame `dashboard` (`6:40`); `/dev/components` acessível em dev e ausente em produção; migration aplica limpo com RLS ativa; os quatro comandos passam. **Atendido.**
 
-### Verificação pendente — conectividade em runtime
+### Verificação de conectividade em runtime ✅
 
-_(Nota corrigida na Fase 3: a saída HTTPS para `*.supabase.co` **não** está
+_(Nota corrigida na Fase 3: a saída HTTPS para `*.supabase.co` nunca esteve
 bloqueada — o endpoint responde 401, ou seja, é alcançável e apenas exige
-chave. O que falta neste ambiente são as credenciais, não a rede.)_
+chave. O que faltava eram as credenciais, não a rede.)_
 
-As migrations foram aplicadas e verificadas pelo MCP do Supabase, mas a conexão
-da aplicação ao banco **não pôde ser exercitada aqui** por falta de chave.
+**Exercitada de fato na Fase 3**, com a aplicação rodando contra o projeto
+`bsaoujbfanluzggjvhfa` depois do provisionamento:
 
-`GET /api/health` faz essa verificação: confirma que o banco responde e que a RLS
-devolve zero linhas de `clinics` sem sessão. Rodar localmente após
-`cp .env.example .env.local` e preencher as chaves:
+```
+GET /api/health  ->  200
+{"status":"ok","database":"reachable","rlsBlocksAnonymousRead":true}
+```
+
+Ou seja: o banco responde, e a RLS devolve **zero linhas** de `clinics` sem
+sessão, mesmo havendo uma clínica gravada. Era a única afirmação da Fase 1 que
+seguia sem comprovação.
+
+Para repetir em outro ambiente, após `cp .env.example .env.local` e preencher
+as chaves:
 
 ```bash
 npm run dev
 curl http://localhost:3000/api/health
-# esperado: {"status":"ok","database":"reachable","rlsBlocksAnonymousRead":true}
 ```
 
 ---
