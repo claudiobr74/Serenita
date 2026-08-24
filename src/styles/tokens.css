@@ -1,0 +1,168 @@
+/**
+ * Design tokens — Serenità
+ *
+ * Fonte de verdade: Figma `G0wRhYCZJWVOfTJdjPofCl`, página `01 — FOUNDATIONS`.
+ * A nomenclatura do Figma é preservada literalmente para que a correspondência
+ * Figma <-> código seja verificável linha a linha:
+ *
+ *     color/background/primary   ->   --color-background-primary
+ *
+ * Tokens marcados como [derivado] não constam dos quadros de Foundations. Eles
+ * foram extraídos dos component sets de `02 — COMPONENTS` via get_design_context,
+ * onde aparecem de forma consistente. Ver docs/FIGMA_AUDIT.md §2.1/§2.4/§2.5 e
+ * docs/DESIGN_DECISIONS.md #13.
+ *
+ * Nenhum valor hex pertence a arquivo de componente. Requisito global de aceite
+ * do próprio Figma: "All colors use semantic design tokens (no hardcoded hex)".
+ */
+
+@theme {
+  /* ---------------------------------------------------------------- *
+   * Cores — Backgrounds
+   * ---------------------------------------------------------------- */
+  --color-background-primary: #ffffff; /* Cards, surfaces */
+  --color-background-secondary: #fbf9f6; /* Page background */
+  --color-surface-hover: #eaefea; /* Hover states */
+  --color-surface-muted: #f0f1f0; /* [derivado] Input disabled, Badge neutral */
+
+  /**
+   * Definido em Foundations como "Sidebar background", porém NÃO UTILIZADO.
+   * As 36 telas de `06 — DESKTOP` usam sidebar clara. Mantido para não quebrar
+   * a rastreabilidade com o Figma. Ver docs/DESIGN_DECISIONS.md #1.
+   */
+  --color-surface-sidebar: #1f2421;
+
+  /* ---------------------------------------------------------------- *
+   * Cores — Texto
+   * ---------------------------------------------------------------- */
+  --color-text-primary: #1f2421; /* Headings, body */
+  --color-text-secondary: #5d625e; /* Secondary info */
+  --color-text-muted: #8a8f8a; /* Placeholders, hints */
+  --color-text-inverse: #ffffff; /* Text on dark bg */
+
+  /* ---------------------------------------------------------------- *
+   * Cores — Ações
+   * ---------------------------------------------------------------- */
+  --color-action-primary: #3a4f43;
+  --color-action-primary-hover: #2d3e34;
+  --color-action-secondary: #eae6df;
+  --color-action-secondary-hover: #ddd9d2; /* [derivado] Button Secondary Hover */
+  --color-action-danger: #c2735a;
+  --color-action-danger-hover: #a8644e; /* [derivado] Button Danger Hover */
+
+  /* ---------------------------------------------------------------- *
+   * Cores — Status
+   *
+   * Os pares *-bg / *-text vêm do component set Badge. Note que
+   * `warning-text` (#846447) é mais escuro que `warning` (#D6A374): o Figma usa
+   * o tom escuro para texto sobre `warning-bg`, atingindo contraste AA.
+   * ---------------------------------------------------------------- */
+  --color-status-success: #3a7d5c;
+  --color-status-success-bg: #e8f5ee; /* [derivado] */
+  --color-status-warning: #d6a374;
+  --color-status-warning-bg: #f8f1e9; /* [derivado] */
+  --color-status-warning-text: #846447; /* [derivado] */
+  --color-status-error: #c2735a;
+  --color-status-error-bg: #f9ece8; /* [derivado] */
+  --color-status-info: #5b7fa6;
+  --color-status-info-bg: #ebf1f7; /* [derivado] */
+
+  /* ---------------------------------------------------------------- *
+   * Cores — Bordas
+   * ---------------------------------------------------------------- */
+  --color-border-default: #eae6df; /* [derivado] Input, Card, Toast, TableRow, shell */
+
+  /* ---------------------------------------------------------------- *
+   * Tipografia
+   *
+   * Três famílias, medidas nas 36 telas de `06 — DESKTOP`.
+   * Ver docs/DESIGN_DECISIONS.md #1.
+   * ---------------------------------------------------------------- */
+  --font-display: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-sans:
+    var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Escala tipográfica — `Foundations / Typography` */
+  --text-display: 2rem; /* 32px */
+  --text-display--line-height: 2.5rem; /* 40px */
+  --text-h1: 1.5rem; /* 24px */
+  --text-h1--line-height: 2rem; /* 32px */
+  --text-h2: 1.25rem; /* 20px */
+  --text-h2--line-height: 1.75rem; /* 28px */
+  --text-h3: 1.125rem; /* 18px */
+  --text-h3--line-height: 1.5rem; /* 24px */
+  --text-h4: 1rem; /* 16px */
+  --text-h4--line-height: 1.375rem; /* 22px */
+  --text-body: 0.875rem; /* 14px */
+  --text-body--line-height: 1.25rem; /* 20px */
+  --text-body-sm: 0.8125rem; /* 13px */
+  --text-body-sm--line-height: 1.125rem; /* 18px */
+  --text-caption: 0.75rem; /* 12px */
+  --text-caption--line-height: 1rem; /* 16px */
+  --text-overline: 0.6875rem; /* 11px */
+  --text-overline--line-height: 0.875rem; /* 14px */
+
+  /* ---------------------------------------------------------------- *
+   * Espaçamento — `Foundations / Spacing Scale`, base 4px
+   * ---------------------------------------------------------------- */
+  --spacing: 0.25rem;
+
+  /* ---------------------------------------------------------------- *
+   * Radius — [derivado] dos component sets. Ver FIGMA_AUDIT.md §2.4
+   * ---------------------------------------------------------------- */
+  --radius-xs: 4px; /* KeyShortcut */
+  --radius-sm: 6px; /* Button SM, Tag, Modal close */
+  --radius-md: 8px; /* Button MD, Input, NavItem, SearchField */
+  --radius-lg: 10px; /* Button LG, Toast */
+  --radius-xl: 12px; /* Card */
+  --radius-2xl: 16px; /* Modal, cards de métrica */
+  --radius-full: 9999px; /* Badge, Avatar */
+
+  /* ---------------------------------------------------------------- *
+   * Sombras — [derivado] dos component sets. Ver FIGMA_AUDIT.md §2.5
+   * ---------------------------------------------------------------- */
+  --shadow-sm: 0 2px 6px rgb(0 0 0 / 0.06); /* Card Elevated */
+  --shadow-md: 0 4px 8px rgb(0 0 0 / 0.08); /* Toast */
+  --shadow-lg: 0 8px 16px rgb(0 0 0 / 0.12); /* Modal */
+
+  /* ---------------------------------------------------------------- *
+   * Motion — `10 — DEV HANDOFF / Motion Tokens`
+   *
+   * "Transições lineares são estritamente proibidas."
+   * ---------------------------------------------------------------- */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --duration-fast: 150ms; /* Hover, tooltip, checkbox, cor */
+  --duration-standard: 250ms; /* Modal, dropdown, card expand */
+  --duration-slow: 350ms; /* Transição de página, matched geometry */
+  --duration-sheet: 400ms; /* Bottom sheet, modo sessão */
+  --duration-spring-subtle: 200ms; /* Micro-interações */
+
+  /* ---------------------------------------------------------------- *
+   * Layout do shell — medido em `06 — DESKTOP` e `07 — TABLET`.
+   * Ver docs/DESIGN_DECISIONS.md #2.
+   * ---------------------------------------------------------------- */
+  --spacing-sidebar: 260px; /* Desktop — medido em 25/25 telas */
+  --spacing-sidebar-rail: 56px; /* Tablet — medido em 9/9 telas iPad */
+  --spacing-topbar: 72px;
+
+  /* ---------------------------------------------------------------- *
+   * Breakpoints — `10 — DEV HANDOFF / Responsive Rules`
+   *
+   * A escala padrão do Tailwind (sm/md/lg/xl/2xl) é REMOVIDA e substituída
+   * pelos dois breakpoints que o Figma define. Dois motivos:
+   *
+   *   1. Vocabulário — o código passa a falar a mesma língua do Figma.
+   *   2. Correção — o Tailwind ordena breakpoints customizados antes dos
+   *      padrões, e não por valor. Convivendo, `md:` (768px) sobrescreveria
+   *      `desktop:` (1280px) na cascata, silenciosamente.
+   *
+   * Mobile (<768px) é o estado base, sem prefixo.
+   * ---------------------------------------------------------------- */
+  --breakpoint-*: initial;
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1280px;
+}

@@ -1,0 +1,64 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/**
+ * Base — Serenità
+ *
+ * O produto é light-only por design. O Figma não define paleta dark, e a
+ * `background-secondary` (#FBF9F6) é constitutiva do "warm clinical modernism"
+ * declarado nas Product Rules. `color-scheme: only light` impede que o browser
+ * aplique inversão automática sobre conteúdo clínico.
+ */
+
+:root {
+  color-scheme: only light;
+}
+
+body {
+  background-color: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  -webkit-font-smoothing: antialiased;
+}
+
+/**
+ * Anel de foco global.
+ * `10 — DEV HANDOFF / Accessibility`: "2px solid #3A4F43 com 2px de offset.
+ * Nunca use outline: none sem um substituto."
+ */
+:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 2px;
+}
+
+/**
+ * Redução de movimento.
+ * `01 — FOUNDATIONS / accessibility-reduce-motion`: desativa saltos físicos e
+ * escalas, substituindo por fade de opacidade simples (200ms). Transições
+ * funcionais são mantidas — nenhuma funcionalidade depende de animação.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 200ms !important;
+    transition-timing-function: ease !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/**
+ * Redução de transparência.
+ * Mesma spec: painéis de vidro passam a fundo sólido com bordas marcadas.
+ */
+@media (prefers-reduced-transparency: reduce) {
+  .surface-glass {
+    background-color: var(--color-background-primary) !important;
+    backdrop-filter: none !important;
+    border-color: var(--color-border-default) !important;
+  }
+}

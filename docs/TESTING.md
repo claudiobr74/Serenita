@@ -1,0 +1,134 @@
+# TESTING.md — Serenità
+
+Estratégia de testes em camadas.
+
+---
+
+## Camadas
+
+| Camada      | Ferramenta               | Escopo                                                                |
+| ----------- | ------------------------ | --------------------------------------------------------------------- |
+| Unit        | Vitest                   | `src/domain/` — regras de negócio, validadores, policies, utilitários |
+| Component   | Vitest + Testing Library | Primitivos do design system e componentes de domínio críticos         |
+| Integration | Vitest                   | Supabase, auth, Google Calendar, IA, transcrição                      |
+| **RLS**     | Vitest + Supabase        | Categoria própria — isolamento de tenant e acesso clínico             |
+| E2E         | Playwright               | Fluxos completos, em desktop e tablet                                 |
+
+```bash
+npm run test        # unit + component + integration
+npm run test:e2e    # Playwright
+```
+
+---
+
+## Testes de RLS
+
+Categoria própria porque um `where` esquecido não é bug de UI — é vazamento de
+prontuário.
+
+Casos obrigatórios:
+
+- clínica A tentando ler dados da clínica B — `select`, `update`, `delete`, e por ID conhecido
+- `secretary` tentando acessar registro clínico
+- **`admin` tentando acessar registro clínico** — deve falhar
+- usuário sem perfil
+- usuário arquivado
+- `INSERT` tentando forjar `clinic_id` de outra clínica
+- `UPDATE`/`DELETE` em `audit_log`
+- auto-promoção de papel em `profiles`
+
+Executados contra um banco real com migrations aplicadas, autenticando como cada
+papel. Nunca com `service_role` — ela contorna exatamente o que está sob teste.
+
+---
+
+## E2E — fluxos obrigatórios
+
+Conforme §46 do prompt-mestre e os User Flows do Figma.
+
+**Autenticação** — login · logout · acesso não autorizado
+
+**Paciente** — criar · visualizar · editar · arquivar
+
+**Consulta** — criar · remarcar · cancelar · sync com Google Calendar
+
+**Sessão clínica** — preparar · iniciar · estado de transcrição · encerrar ·
+debrief · finalizar registro
+
+**Permissão** — secretary não acessa conteúdo clínico
+
+**Isolamento** — organização A não acessa organização B
+
+### Viewports
+
+Os dois breakpoints que o Figma exige no Definition of Done:
+
+| Projeto   | Viewport  | Corresponde a                                    |
+| --------- | --------- | ------------------------------------------------ |
+| `desktop` | 1440×1024 | Frames de `06 — DESKTOP`                         |
+| `tablet`  | 1194×834  | Frames de `07 — TABLET` (iPad Pro 11" landscape) |
+
+---
+
+## QA visual
+
+Após implementar cada tela (§47–48):
+
+1. Rodar a aplicação local
+2. Abrir a rota
+3. Capturar screenshot no viewport correspondente
+4. Comparar com o frame do Figma
+5. Ajustar as diferenças
+6. Repetir
+
+Verificar: dimensões · espaçamento · alinhamento · tipografia · cores · radius ·
+sombras · ícones · responsivo · estados · animações.
+
+**Uma tela não é concluída por "parecer semelhante".**
+
+Prioridade: Dashboard · Agenda · Perfil Paciente · Preparar Sessão · Modo Sessão ·
+Debrief · Supervisor IA.
+
+---
+
+## Testes que protegem regras invioláveis
+
+Certas regras são fáceis de quebrar por engano numa refatoração. Cada uma tem um
+teste cuja falha é o alarme:
+
+| Regra                                                                    | Teste                                    |
+| ------------------------------------------------------------------------ | ---------------------------------------- |
+| `admin` não acessa conteúdo clínico                                      | `src/domain/auth/policy.test.ts`         |
+| Sidebar não expõe destinos clínicos por papel                            | `src/components/shell/nav-items.test.ts` |
+| Nenhum campo clínico vai para o Google Calendar                          | Fase 5 — serializador de evento          |
+| Sync de calendário é idempotente                                         | Fase 5                                   |
+| Áudio não trafega por route handler                                      | Fase 6                                   |
+| Transcrição não vira registro clínico sem revisão                        | Fase 6                                   |
+| Artefato de IA não revisado não é registro finalizado                    | Fase 7                                   |
+| Serviço de IA recusa sem consentimento, com a UI contornada              | Fase 7                                   |
+| Nenhum módulo fora de `server/providers/ai/` importa o SDK do fornecedor | Fase 7                                   |
+
+---
+
+## O que não fazer
+
+- Não testar contra dados clínicos reais. Seed é sempre fictício.
+- Não usar `service_role` em teste de RLS.
+- Não marcar uma feature como pronta com teste crítico falhando.
+- Não desabilitar ou pular um teste para obter build verde.
+
+---
+
+## Quality gates
+
+Antes de cada milestone:
+
+```bash
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+```
+
+Nenhum milestone é considerado pronto com erro de TypeScript, erro relevante de
+lint, build quebrado ou teste crítico falhando.

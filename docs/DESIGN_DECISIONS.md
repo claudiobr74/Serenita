@@ -1,0 +1,220 @@
+# DESIGN_DECISIONS.md — Serenità
+
+Registro de ambiguidades, contradições e lacunas encontradas no Figma, e como foram resolvidas.
+
+Regra que governa este documento (prompt-mestre §2 e §81):
+
+- **Figma vence para UI/UX.**
+- **Segurança e integridade de dados vencem sobre o Figma**, com a divergência documentada aqui.
+- Onde o Figma é ambíguo: escolher a solução mais consistente com o resto do Serenità, mais simples, tecnicamente robusta e reversível.
+
+Status possíveis: `DECIDIDO` · `DECIDIDO (usuário)` · `PENDENTE` · `ADIADO PARA FASE N`
+
+---
+
+## #1 — Sidebar clara vs. escura, e famílias tipográficas
+
+**Status:** `DECIDIDO (usuário)` — 2026-08-24
+
+**A contradição.** O arquivo se contradiz em dois pontos ligados:
+
+| Fonte                                | Sidebar                                                                                                                | Tipografia                                                                         |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `00 — README` (Product Rules)        | "Persistent left sidebar (240px desktop…). Dark (`#1F2421`) background."                                               | "Font: Inter (all weights). **No other typefaces.**"                               |
+| `01 — FOUNDATIONS`                   | token `color/surface/sidebar` = `#1F2421`                                                                              | "Font family: Inter."                                                              |
+| `02 — COMPONENTS` → `SidebarNavItem` | desenhado para fundo escuro: label `#C0C4C0`, ativo `rgba(58,79,67,.15)` + texto branco, hover `rgba(255,255,255,.08)` | Inter                                                                              |
+| `06 — DESKTOP` (**36 telas**)        | `bg #FFFFFF`, `border-r #EAE6DF`, ativo = pill `#EAEFEA` + borda `#EAE6DF` + texto `#3A4F43`                           | **Newsreader** (display) + **Instrument Sans** (UI) + **JetBrains Mono** (atalhos) |
+
+**Decisão.** Seguir **as 36 telas de `06 — DESKTOP`**: sidebar clara e as três famílias tipográficas. As páginas `00`, `01` e `02` são tratadas como **desatualizadas** nestes dois pontos específicos (o restante delas — paleta, escala de espaçamento, specs de componentes — continua normativo e foi confirmado nas telas).
+
+**Justificativa.** As telas são o produto desenhado, são 36 e são internamente consistentes (a sidebar mede 260px e é branca em 25/25 telas com shell). O `SidebarNavItem` de `02 — COMPONENTS` não é usado como instância em nenhuma tela — é um componente órfão de uma direção visual anterior.
+
+**Consequência de segurança que altera o Figma.** Nas telas, os labels de nav **inativos** estão em `#FFFFFF` sobre fundo `#FFFFFF` — literalmente invisíveis (contraste 1:1). Isso é resíduo da direção escura anterior, não intenção de design. Implementar como está violaria a própria regra de produto do arquivo ("WCAG AA minimum, 4.5:1"). **Os labels inativos usam `color/text/secondary` (`#5D625E`)**, que dá 6.4:1 sobre `#FFFFFF` e é coerente com o tratamento de texto secundário em todo o resto do sistema.
+
+**Token afetado.** `color/surface/sidebar` (`#1F2421`) fica **sem uso** na implementação. Não foi removido do token layer — permanece definido e documentado como não utilizado, para não quebrar rastreabilidade com o Figma.
+
+---
+
+## #2 — Largura da sidebar: 240 vs. 260 vs. 280
+
+**Status:** `DECIDIDO`
+
+Três valores conflitantes no arquivo:
+
+| Fonte                                        | Valor                          |
+| -------------------------------------------- | ------------------------------ |
+| `00 — README`                                | 240px                          |
+| `10 — DEV HANDOFF / Responsive Rules`        | 240px                          |
+| `01 — FOUNDATIONS / sidebar-header-behavior` | 260px ("DESKTOP FULL (260px)") |
+| `06 — DESKTOP` — **medido em 25/25 telas**   | **260px**                      |
+
+**Decisão: 260px.** As telas reais e a spec de motion concordam; os dois textos de 240px são a minoria e não correspondem a nada desenhado. Área de conteúdo começa em `x = 260`.
+
+**Idem para o rail de tablet:**
+
+| Fonte                                            | Valor    |
+| ------------------------------------------------ | -------- |
+| `10 — DEV HANDOFF`                               | 72px     |
+| `01 — FOUNDATIONS / sidebar-header-behavior`     | 80px     |
+| `07 — TABLET` — **medido em 9/9 telas com rail** | **56px** |
+
+**Decisão: 56px**, pelo mesmo critério. Note que 56px ainda comporta o alvo de toque de 44pt exigido para iPad.
+
+---
+
+## #3 — Item de navegação "Sessões" sem rota correspondente
+
+**Status:** `DECIDIDO`
+
+A sidebar tem 11 itens, entre eles **"Sessões"**. O Route Map (`04 — IA`) não tem nenhuma rota `/sessoes`: todas as rotas de sessão são `/sessao/preparar/[id]`, `/sessao/[id]`, `/sessao/[id]/pos`, `/sessao/[id]/registro` — todas exigem uma sessão concreta.
+
+**Decisão.** Criar `/sessoes` como **índice de sessões da clínica** (lista/filtro de sessões do profissional, ponto de entrada para o fluxo clínico). É a leitura mais consistente: o item existe na navegação de todas as 25 telas com shell, e a alternativa (remover o item) alteraria a navegação desenhada, o que §2 proíbe.
+
+`/sessoes` é adicionada ao mapa de rotas como **29ª rota**, marcada como derivada. Papéis: `Psychologist` (mesmo escopo das demais rotas de sessão).
+
+**Reversível:** se o autor do design confirmar que "Sessões" deveria apontar para `/agenda`, é uma linha de mudança no `NAV_ITEMS`.
+
+---
+
+## #4 — Button sem estado `focus-visible` nem `loading`
+
+**Status:** `DECIDIDO`
+
+O component set `Button` tem 36 variants cobrindo `style × size × state`, mas `state` só tem Default | Hover | Disabled.
+
+- **`focus-visible`:** ausente do component set, mas **especificado em texto** em `10 — DEV HANDOFF / Accessibility`: "anel de foco visível: `2px solid #3A4F43` com `2px` de offset". Aplicado a todos os interativos, não só Button.
+- **`loading`:** ausente do component set, mas especificado em `01 — FOUNDATIONS / interaction-states`: estado "LOADING" com label "Aguarde…" e `infinite spin 1s`. Além disso, `03 — PATTERNS / Actions` exige "desabilitar o botão de submit enquanto o formulário está enviando".
+
+**Decisão.** Ambos implementados a partir das specs textuais do próprio Figma. Não é invenção: são requisitos escritos no arquivo que apenas não foram desenhados como variant.
+
+---
+
+## #5 — Card: variants `Default` e `Outlined` são idênticos
+
+**Status:** `DECIDIDO`
+
+Os três variants de `Card` (`12:196`) renderizam:
+
+- `Default` → `bg #FFF · border 1px #EAE6DF · radius 12 · p 20`
+- `Elevated` → `bg #FFF · shadow 0 2px 6px rgba(0,0,0,.06) · radius 12 · p 20` (sem borda)
+- `Outlined` → **exatamente igual a `Default`**
+
+**Decisão.** Manter os três nomes na API (`variant="default" | "elevated" | "outlined"`) porque o design-to-code mapping do Figma referencia `<Card variant="outlined">` explicitamente. `default` e `outlined` produzem o mesmo resultado visual — comportamento fiel ao arquivo. Documentado para que a duplicação não seja "corrigida" por engano numa refatoração futura.
+
+---
+
+## #6 — ~19 primitivos exigidos sem component set no Figma
+
+**Status:** `ADIADO PARA FASE 2`
+
+O prompt-mestre §8 exige um conjunto de primitivos; `02 — COMPONENTS` só define 10 (Button, Input, Badge, Avatar, Card, SidebarNavItem, TableRow, Toast, Tag, Modal).
+
+Sem component set: Textarea, Select, MultiSelect, Checkbox, Radio, Switch, Tabs, Tooltip, Popover, Dropdown, Sheet, Drawer, Skeleton, EmptyState, ErrorState, Pagination, Search, Command Palette, IconButton.
+
+**Vários existem desenhados dentro de telas**, e é de lá que a spec sai — não de invenção:
+
+| Primitivo                | Onde está desenhado                                                                     |
+| ------------------------ | --------------------------------------------------------------------------------------- |
+| Search / Command Palette | `command-palette-search` (`6:6231`), SearchField do TopBar (`6:103`)                    |
+| Tabs                     | `perfil-paciente` (`6:783`)                                                             |
+| Skeleton                 | `loading-sync-states` (`6:6071`)                                                        |
+| EmptyState               | `empty-states` (`6:5957`) + `03 — PATTERNS / Empty States`                              |
+| ErrorState               | `error-warning-states` (`6:6162`) + `03 — PATTERNS / Error Handling`                    |
+| Checkbox / Switch        | `01 — FOUNDATIONS / interaction-states` (specs de motion)                               |
+| Sheet / Drawer           | `01 — FOUNDATIONS / interaction-states` (translateY + backdrop blur 16px, 400ms spring) |
+| IconButton               | NotificationButton do TopBar (`6:112`)                                                  |
+
+**Decisão.** Na Fase 2, cada primitivo é derivado da instância desenhada correspondente (extraída por `get_design_context`), aplicando os tokens de Foundations. Nenhum primitivo é criado do nada. Os que não têm nenhuma instância desenhada (Select, MultiSelect, Radio, Tooltip, Popover, Dropdown, Pagination) são construídos por consistência com Input e Modal, e listados aqui novamente quando forem implementados.
+
+---
+
+## #7 — Estado "permission denied" não desenhado
+
+**Status:** `DECIDIDO`
+
+A matriz RBAC é explícita e restritiva (Admin **não** vê conteúdo clínico; Secretary não vê nada clínico), mas não há tela de acesso negado.
+
+**Decisão.** Duas camadas, seguindo o princípio de exposição mínima para dado clínico (§76 do prompt-mestre):
+
+1. **Navegação:** itens de sidebar e ações fora do escopo do papel **não são renderizados** — não aparecem desabilitados. Evita revelar a existência de recursos.
+2. **Acesso direto por URL:** a rota devolve o estado de erro definido em `03 — PATTERNS / Error Handling` para erro de página inteira (título + descrição + ação), com cópia de "sem permissão", sem revelar se o recurso existe.
+
+Em ambos os casos o bloqueio real é server-side + RLS; a UI nunca é o mecanismo de segurança.
+
+---
+
+## #8 — Máquina de estados da transcrição não desenhada
+
+**Status:** `ADIADO PARA FASE 6`
+
+O Figma mostra o **resultado** ("Analisando transcrição de áudio para extrair temas recorrentes e deveres de casa…" em `loading-sync-states`) e exige consentimento prévio (diálogo em `dialogs-confirmations`), mas não desenha os estados intermediários.
+
+**Decisão.** Adotar a máquina de estados do prompt-mestre §23 (`idle → connecting → recording → transcribing → paused → reconnecting → processing → completed → error`), renderizada com os componentes de loading/erro já definidos em `03 — PATTERNS`. Revisitar quando/se o Figma ganhar as telas.
+
+---
+
+## #9 — Página `08 — MOBILE` vazia
+
+**Status:** `ADIADO PARA FASE 11`
+
+A página existe e está **vazia** — nenhuma tela mobile desenhada. Só existem as regras textuais de `10 — DEV HANDOFF / Responsive Rules`: sidebar oculta atrás de hambúrguer com overlay full-screen; coluna única; cards empilhados; tab bar inferior com Dashboard, Agenda, Pacientes, Mais.
+
+**Decisão.** Desktop e Tablet são implementados com fidelidade a frames reais. Mobile é implementado **apenas conforme as regras textuais**, e marcado como não verificável contra o Figma até que as telas existam. Os acceptance criteria globais do próprio Figma pedem responsividade apenas em "Desktop (≥1280px) e Tablet (768–1279px)" — mobile não está no Definition of Done do arquivo.
+
+---
+
+## #10 — Modelo de dados: `clinics`/`profiles` vs. `organizations`/`memberships`
+
+**Status:** `DECIDIDO (usuário)` — 2026-08-24
+
+O prompt-mestre §12 propõe `organization → memberships → users`. O `10 — DEV HANDOFF / Data Model` especifica `clinics → profiles` com `role` diretamente em `profiles`, e 9 outras tabelas com colunas nomeadas.
+
+**Decisão.** Seguir o Data Model do Dev Handoff. É a especificação concreta, nomeia colunas, e o resto do arquivo (RBAC, GCal, audit) é escrito em cima dela.
+
+**Consequência aceita:** `profiles.clinic_id` + `profiles.role` significam **um usuário pertence a exatamente uma clínica com exatamente um papel**. Não há multi-membership. Isso é mais simples e adequado ao domínio (um psicólogo de uma clínica), e é reversível: introduzir uma tabela `memberships` depois não exige reescrever as políticas de RLS, que se apoiam em funções auxiliares (`current_clinic_id()`, `current_role()`) e não em joins diretos.
+
+---
+
+## #11 — Versões de stack e acoplamento a fornecedor de IA
+
+**Status:** `DECIDIDO (usuário)` — 2026-08-24
+
+O `10 — DEV HANDOFF / Tech Stack` fixa "Next.js 14 (App Router), React 18, TypeScript 5", "Tailwind CSS 3" e "OpenAI GPT-4".
+
+**Decisão.**
+
+- **Versões:** usar as versões estáveis atuais (Next.js 16, React 19, Tailwind 4). Next.js 14 e React 18 já não recebem suporte pleno; fixá-los criaria dívida de segurança desde o dia zero. Isto **não é decisão de UI/UX**, então a cláusula "Figma vence para UI/UX" não se aplica — aplica-se a exceção de segurança/manutenção de §2.
+  - Impacto prático: Tailwind 4 usa configuração CSS-first (`@theme` em `globals.css`) em vez de `tailwind.config.js`. Isso **favorece** o requisito §7 de camada centralizada de tokens.
+- **IA:** implementar a interface `AIProvider` (§25 do prompt-mestre) com um adapter OpenAI como primeiro e único provedor. Nenhum serviço de domínio importa o SDK da OpenAI diretamente. O Figma especifica o _fornecedor_, não a _arquitetura de acoplamento_; a abstração satisfaz o Figma e o prompt-mestre ao mesmo tempo.
+
+---
+
+## #12 — Identificador `PAC-###` sem coluna no modelo de dados
+
+**Status:** `ADIADO PARA FASE 4`
+
+As telas mostram pacientes como `Lucas Mendes • PAC-018` (visto em `01 — FOUNDATIONS / key-transitions` e nas telas de paciente), e o prompt-mestre §16 exige esse formato e um identificador interno estável. Mas a tabela `patients` do Dev Handoff não tem coluna para ele.
+
+**Decisão.** Adicionar `patients.display_code` (ex.: `PAC-018`), gerado por sequência **por clínica**, imutável, `UNIQUE (clinic_id, display_code)`. É adição ao modelo do Figma, não alteração: nenhuma coluna declarada foi removida ou renomeada. Justificativa dupla — a UI desenhada exige o código, e §16 proíbe usar o nome como identificador técnico.
+
+---
+
+## #13 — Tokens não existem como Figma Variables
+
+**Status:** `DECIDIDO`
+
+`get_variable_defs` e `search_design_system` retornam vazio para este arquivo. Os tokens existem apenas como **texto nos quadros de Foundations** (ex.: um label "color/background/primary" ao lado de um swatch com a legenda "#FFFFFF · Cards, surfaces"). O Dev Handoff afirma que "todas as durações são armazenadas como Figma Variables na coleção Motion" — não são.
+
+**Decisão.** Os tokens foram transcritos manualmente dos quadros de Foundations para `src/styles/tokens.css`, preservando **exatamente** a nomenclatura do Figma (`color/background/primary` → `--color-background-primary`), de modo que a correspondência Figma ↔ código continue verificável linha a linha. Se as Variables forem publicadas depois, a extração automática deve produzir os mesmos nomes.
+
+Tokens **derivados** (não presentes nos quadros de Foundations, mas usados de forma consistente nos component sets — `color/border/default`, `color/surface/muted`, os `*Bg` de status, radius e shadow) estão marcados como derivados em `tokens.css` e listados na §2.1/§2.4/§2.5 do `FIGMA_AUDIT.md`, com a origem de cada um.
+
+---
+
+## #14 — Páginas `09 — INTERACTIVE PROTOTYPE` e `99 — ARCHIVE` não localizadas
+
+**Status:** `PENDENTE` (sem impacto)
+
+O README declara as duas páginas. `get_metadata` sem `nodeId` lista apenas `00`; as demais foram alcançadas por IDs sequenciais a partir de `6:8434`. As páginas `09` e `99` não responderam nessa sequência.
+
+**Impacto:** nenhum. O README classifica `09` como "future" e `99` como "deprecated or superseded designs" — nenhuma das duas é normativa. Registrado apenas para que a auditoria seja honesta sobre o que **não** foi lido.
