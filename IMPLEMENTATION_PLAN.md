@@ -314,6 +314,10 @@ O fluxo principal do produto. Precisa de UX excelente (§22).
 
 ## Fase 12 — Produção
 
+> O necessário para subir hoje já está em `docs/DEPLOY.md` — variáveis,
+> allowlist de redirect do Supabase, SMTP e verificação pós-deploy. Esta fase
+> cobre o resto.
+
 - [ ] Projeto Vercel + ambiente de produção
 - [ ] Supabase de produção + migrations
 - [ ] Sentry · Vercel Analytics · PostHog

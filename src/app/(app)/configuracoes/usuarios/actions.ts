@@ -129,7 +129,7 @@ export async function convidarMembro(
 
   return {
     aviso: envio.entregue
-      ? `Convite criado para ${email}. O envio por e-mail está em modo de desenvolvimento.`
+      ? `Convite criado para ${email}. O envio automático de e-mail ainda não está configurado — repasse o link abaixo.`
       : `Convite criado para ${email}, mas o e-mail não pôde ser enviado (${envio.motivo}).`,
     linkDeConvite: link,
   };
