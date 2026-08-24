@@ -1,6 +1,6 @@
 "use client";
 
-import { type ComponentPropsWithoutRef, useId } from "react";
+import { type ComponentPropsWithoutRef, type ReactNode, useId } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -30,6 +30,15 @@ export type InputProps = Omit<ComponentPropsWithoutRef<"input">, "id"> & {
   /** Texto de apoio abaixo do campo, quando não há erro. */
   hint?: string;
   id?: string;
+  /**
+   * Conteúdo ancorado à direita, dentro da caixa do campo.
+   *
+   * Derivado da instância desenhada no login (`6:27`), onde o campo de senha
+   * traz o olho de revelar em 16px. Ver docs/DESIGN_DECISIONS.md #6.
+   */
+  trailing?: ReactNode;
+  /** Ação à direita do label — "Esqueci minha senha" no login (`6:26`). */
+  labelAction?: ReactNode;
 };
 
 export function Input({
@@ -40,6 +49,8 @@ export function Input({
   className,
   disabled,
   required,
+  trailing,
+  labelAction,
   ...props
 }: InputProps) {
   const generatedId = useId();
@@ -50,45 +61,55 @@ export function Input({
 
   return (
     <div className={cn("flex flex-col gap-1.5", disabled && "opacity-60")}>
-      <label
-        htmlFor={inputId}
-        className={cn(
-          "text-body-sm font-medium",
-          disabled ? "text-text-muted" : "text-text-primary",
-        )}
-      >
-        {label}
-        {required && (
-          // `03 — PATTERNS`: campos obrigatórios com asterisco sutil.
-          <span className="ml-0.5 text-text-secondary" aria-hidden>
-            *
-          </span>
-        )}
-      </label>
+      <div className="flex items-baseline justify-between gap-4">
+        <label
+          htmlFor={inputId}
+          className={cn(
+            "text-body-sm font-medium",
+            disabled ? "text-text-muted" : "text-text-primary",
+          )}
+        >
+          {label}
+          {required && (
+            // `03 — PATTERNS`: campos obrigatórios com asterisco sutil.
+            <span className="ml-0.5 text-text-secondary" aria-hidden>
+              *
+            </span>
+          )}
+        </label>
+        {labelAction}
+      </div>
 
-      <input
-        id={inputId}
-        disabled={disabled}
-        required={required}
-        aria-invalid={hasError || undefined}
-        aria-describedby={message ? messageId : undefined}
-        className={cn(
-          "h-10 w-full rounded-md px-3 py-2.5 text-body",
-          "text-text-primary placeholder:text-text-muted",
-          "duration-fast transition-colors ease-standard",
-          // O anel global de foco já cobre :focus-visible; a borda de 2px do
-          // estado Focused é aplicada aqui para bater com o frame.
-          "focus:border-2 focus:outline-none",
-          disabled
-            ? "border border-border-default bg-surface-muted"
-            : "bg-background-primary",
-          hasError
-            ? "border border-action-danger focus:border-action-danger"
-            : "border border-border-default focus:border-action-primary",
-          className,
+      <div className="relative flex w-full items-center">
+        <input
+          id={inputId}
+          disabled={disabled}
+          required={required}
+          aria-invalid={hasError || undefined}
+          aria-describedby={message ? messageId : undefined}
+          className={cn(
+            "h-10 w-full rounded-md px-3 py-2.5 text-body",
+            "text-text-primary placeholder:text-text-muted",
+            "duration-fast transition-colors ease-standard",
+            // O anel global de foco já cobre :focus-visible; a borda de 2px do
+            // estado Focused é aplicada aqui para bater com o frame.
+            "focus:border-2 focus:outline-none",
+            disabled
+              ? "border border-border-default bg-surface-muted"
+              : "bg-background-primary",
+            hasError
+              ? "border border-action-danger focus:border-action-danger"
+              : "border border-border-default focus:border-action-primary",
+            // Espaço para o conteúdo à direita não ficar por cima do texto.
+            trailing && "pr-10",
+            className,
+          )}
+          {...props}
+        />
+        {trailing && (
+          <span className="absolute right-3 flex items-center">{trailing}</span>
         )}
-        {...props}
-      />
+      </div>
 
       {message && (
         <p

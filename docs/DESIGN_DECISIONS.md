@@ -313,3 +313,50 @@ A escala tipográfica do Serenità gera utilitários como `text-body` e `text-h2
 O efeito: **todo botão primário e de perigo ficou com texto `#1F2421` sobre fundo verde escuro — 1.79:1.** Lint, typecheck e build passaram; só a auditoria de contraste no browser encontrou.
 
 Corrigido com `extendTailwindMerge` em `src/lib/cn.ts`, declarando a escala como grupo `font-size`. A lista precisa acompanhar os tokens `--text-*` de `tokens.css`.
+
+---
+
+## #19 — Magic link exigido pelo plano, ausente do frame de login
+
+`IMPLEMENTATION_PLAN.md` Fase 3 pede "magic link + senha", e o Route Map do
+Figma registra `/login` como "Supabase Auth, magic link + senha". Mas o frame
+`login` (6:9) desenha **apenas** senha e Google — não há botão de magic link.
+
+**Decisão:** implementar o magic link como ação secundária, no bloco de ações
+onde o frame coloca o botão do Google. A hierarquia visual do frame é
+preservada: uma ação primária cheia, as demais em `outline`.
+
+## #20 — Google OAuth desenhado na Fase 3, credencial só na Fase 5
+
+O frame 6:9 traz "Continuar com Google", mas a integração com Google depende de
+client OAuth que o plano só prevê na Fase 5, e que ainda não existe.
+
+**Decisão:** renderizar o botão **desabilitado**, com `title` explicando
+quando ficará disponível, em vez de omitir. Omitir faria a tela divergir do
+Figma e esconderia da equipe que a funcionalidade está prevista; um botão que
+falha ao ser clicado seria pior. Vira ativo na Fase 5 sem mudança de layout.
+
+## #21 — Assets do login não puderam ser baixados
+
+`LogoMark` (6:13) é um PNG e `BackgroundGlow` (6:10) é um SVG, ambos exportados
+pelo Figma. O ambiente desta sessão bloqueia o CDN da Figma por política de
+rede (403 no CONNECT para `www.figma.com`), e o README do proxy é explícito em
+não insistir em negação de política.
+
+**Decisão:** reservar a geometria exata dos dois (120px para o logo, 600px
+centrados e 50px acima do meio para o glow) e ocupar com o tratamento de marca
+que a Sidebar já usa e com um brilho em token. A troca pelos arquivos reais é
+de uma linha em cada ponto.
+
+**Para resolver:** adicionar `public/brand/logomark.png` e
+`public/brand/login-glow.svg`, exportando de 6:13 e 6:10.
+
+## #22 — `/recuperar` sem frame desenhado
+
+O link "Esqueci minha senha" (6:26) aponta para `/recuperar`, mas a página não
+existe em `06 — DESKTOP`, e a Fase 3 exige recuperação de senha com e-mail em
+até 30s.
+
+**Decisão:** reusar a moldura do card de login — mesmo container, mesmo
+espaçamento, mesmos primitivos — com cabeçalho e um único campo. Nada de
+invenção visual: é a tela de login com o miolo trocado.

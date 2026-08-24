@@ -23,6 +23,27 @@ npm run test:e2e    # Playwright
 
 ## Testes de RLS
 
+`supabase/tests/rls.sql` é a suíte exigida pelo ADR 001. Roda inteira dentro de
+uma transação e termina em `rollback`, então pode ser executada contra qualquer
+ambiente sem deixar resíduo:
+
+```bash
+psql "$SUPABASE_DB_URL" -f supabase/tests/rls.sql
+```
+
+São 19 cenários, um por linha da tabela de ameaças de `AUTHORIZATION.md`, sobre
+duas clínicas com os três papéis. Cada um declara o esperado e o obtido; ao
+final, qualquer divergência levanta exceção, o que aborta a transação e
+sinaliza erro para quem chamou.
+
+Os cenários de escalação e de forja de auditoria não são hipotéticos: foram
+falhas **reais** neste banco, encontradas na revisão das Fases 0–2 e corrigidas
+na migration `20260824180540`. Estão aqui para não voltarem.
+
+O cenário de perfil arquivado cobre uma consequência fácil de perder de vista:
+`current_clinic_id()` filtra `archived_at is null`, então arquivar um perfil
+revoga o acesso pelo banco, não só pela UI.
+
 Categoria própria porque um `where` esquecido não é bug de UI — é vazamento de
 prontuário.
 

@@ -14,7 +14,7 @@ o que o `IMPLEMENTATION_PLAN.md` declara concluído com o que de fato existe.
 As Fases 0–2 estão substancialmente entregues e a qualidade do que existe é
 alta. As reivindicações do plano se sustentam quase todas sob verificação.
 
-> **Atualização.** Os achados 1, 2, 4, 5 e 7 foram corrigidos após esta revisão —
+> **Atualização.** Os achados 1, 2, 4, 5, 7, 11 e 12 foram corrigidos após esta revisão —
 > ver `Situação` em cada um. Os demais seguem abertos.
 
 Restavam **duas falhas de autorização no banco** que valem correção antes da
@@ -207,12 +207,20 @@ da Fase 2 declara atendidos. Os dois bugs de `Modal` acima teriam sido pegos.
 
 ### 11 — `middleware.ts` prometido mas inexistente · **informativo**
 
+> **Situação: corrigido na Fase 3** — como `proxy.ts`, não `middleware.ts`: o
+> Next 16 deprecou e renomeou a convenção. O comentário em `server.ts` que
+> descrevia o destino como se fosse o presente foi atualizado.
+
 `server/supabase/server.ts` justifica ignorar falha de escrita de cookie com
 "o middleware faz o refresh da sessão". Não há middleware no repositório.
 Correto para a Fase 1 — é dívida a saldar na Fase 3, e o comentário deve deixar
 claro que descreve o destino, não o presente.
 
 ### 12 — A área `(app)` inteira é pública · **informativo**
+
+> **Situação: corrigido na Fase 3.** As 11 rotas exigem sessão, por duas
+> camadas: redirect otimista no `proxy.ts` e `requireViewer()` no layout, com a
+> RLS como terceira. Coberto por e2e.
 
 As 11 rotas do shell renderizam sem sessão, com `PLACEHOLDER_PROFILE`. Está
 documentado e é o esperado da Fase 1, mas é o que um deploy de hoje exporia.

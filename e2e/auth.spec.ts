@@ -1,0 +1,91 @@
+import { expect, test } from "@playwright/test";
+
+/**
+ * Guard de autenticação e tela de login.
+ *
+ * Estes testes rodam SEM sessão, que é o estado em que o CI opera: não
+ * dependem de banco nem de credencial, e por isso valem como gate.
+ */
+
+test("rota protegida sem sessão vai para o login", async ({ page }) => {
+  await page.goto("/dashboard");
+
+  await expect(page).toHaveURL(/\/login/);
+  await expect(
+    page.getByRole("button", { name: "Entrar no Serenitá" }),
+  ).toBeVisible();
+});
+
+test("o destino original é preservado em `next`", async ({ page }) => {
+  await page.goto("/pacientes/123");
+
+  // Preservar o destino é o que faz o login devolver o usuário onde ele estava.
+  await expect(page).toHaveURL(/next=%2Fpacientes%2F123/);
+});
+
+test("a raiz sem sessão termina no login", async ({ page }) => {
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/login/);
+});
+
+test("o login mostra os campos e as ações do frame", async ({ page }) => {
+  await page.goto("/login");
+
+  await expect(page.getByLabel(/^E-mail profissional\*?$/)).toBeVisible();
+  await expect(page.getByLabel(/^Senha\*?$/)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Entrar no Serenitá" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /link de acesso/i }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Esqueci minha senha" }),
+  ).toBeVisible();
+});
+
+test("o olho revela e oculta a senha", async ({ page }) => {
+  await page.goto("/login");
+
+  const senha = page.getByLabel(/^Senha\*?$/);
+  await senha.fill("segredo123");
+  await expect(senha).toHaveAttribute("type", "password");
+
+  await page.getByRole("button", { name: "Mostrar senha" }).click();
+  await expect(senha).toHaveAttribute("type", "text");
+
+  await page.getByRole("button", { name: "Ocultar senha" }).click();
+  await expect(senha).toHaveAttribute("type", "password");
+});
+
+test("Google fica desabilitado até a Fase 5", async ({ page }) => {
+  await page.goto("/login");
+
+  await expect(
+    page.getByRole("button", { name: "Continuar com Google" }),
+  ).toBeDisabled();
+});
+
+test("a recuperação de senha é alcançável a partir do login", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await page.getByRole("link", { name: "Esqueci minha senha" }).click();
+
+  await expect(page).toHaveURL(/\/recuperar$/);
+  await expect(
+    page.getByRole("heading", { name: "Recuperar senha" }),
+  ).toBeVisible();
+});
+
+test("as rotas públicas de auth não entram em laço de redirecionamento", async ({
+  page,
+}) => {
+  // Um proxy mal configurado que redirecionasse /login para /login derrubaria
+  // a aplicação inteira. Vale um teste explícito.
+  for (const rota of ["/login", "/recuperar"]) {
+    const resposta = await page.goto(rota);
+    expect(resposta?.status(), `${rota} deve responder 200`).toBe(200);
+    await expect(page).toHaveURL(new RegExp(`${rota}$`));
+  }
+});

@@ -15,7 +15,8 @@ Plano de execução em fases, derivado da auditoria integral do Figma (`docs/FIG
 | 0 — Discovery     | ✅ Concluída     |
 | 1 — Foundation    | ✅ Concluída     |
 | 2 — Design System | ✅ Concluída     |
-| 3–12              | ⬜ Não iniciadas |
+| 3 — Auth          | 🟡 Em andamento  |
+| 4–12              | ⬜ Não iniciadas |
 
 Projeto Supabase: `Serenita` — ref `bsaoujbfanluzggjvhfa`, região `us-west-2`.
 
@@ -140,20 +141,36 @@ curl http://localhost:3000/api/health
 
 ---
 
-## Fase 3 — Auth + Multi-tenancy
+## Fase 3 — Auth + Multi-tenancy 🟡
 
-- [ ] `/login` (`6:9`) — magic link + senha, tratamento de erro (credencial inválida, link expirado, rate limit)
-- [ ] Recuperação de senha — e-mail em até 30s
-- [ ] Persistência de sessão entre abas
-- [ ] Redirect para `/dashboard` com sessão válida
-- [ ] Consentimento de cookies LGPD na primeira visita
-- [ ] `clinics` · `profiles` · enum de papéis
-- [ ] Funções `current_clinic_id()` · `current_role()` · `is_clinical_role()`
-- [ ] Policies de RLS em toda tabela sensível
-- [ ] `policy.ts` por domínio, compartilhado UI/server
-- [ ] Onboarding de clínica (`6:5213`)
+### Fatia 1 — Entrar e sair ✅
+
+- [x] `/login` (`6:9`) — senha + magic link, com tratamento de credencial inválida, link expirado e rate limit
+- [x] Recuperação de senha (`/recuperar`) — resposta idêntica com ou sem conta, para não enumerar e-mails
+- [x] `proxy.ts` — renovação de sessão e checagem otimista de rota. **No Next 16 `middleware.ts` foi deprecado e renomeado**
+- [x] `server/auth/session.ts` — camada de acesso a dados, memoizada com `cache()`, como checagem real
+- [x] Persistência de sessão entre abas — cookie renovado pelo proxy a cada requisição
+- [x] Redirect para `/dashboard` com sessão válida, e `?next=` preservando o destino
+- [x] Proteção contra open redirect em `next`, com teste dedicado
+- [x] `(app)/layout.tsx` deixou de usar perfil placeholder — vem do banco, sob RLS
+- [x] `clinics` · `profiles` · enum de papéis _(já na Fase 1)_
+- [x] Funções `current_clinic_id()` · `current_profile_role()` · `is_clinical_role()` _(já na Fase 1)_
+- [x] Policies de RLS em toda tabela sensível _(Fase 1, endurecidas em `20260824180540`)_
+- [x] `policy.ts` por domínio, compartilhado UI/server _(já na Fase 1)_
+- [x] **Suíte de testes de RLS** (ADR 001) — 19 cenários em `supabase/tests/rls.sql`
+
+### Fatia 2 — Contas e clínicas ⬜
+
+- [ ] Onboarding de clínica (`6:5213`) — inclui o caminho privilegiado que cria a primeira clínica e o primeiro admin
 - [ ] Usuários e permissões (`6:4989`)
-- [ ] **Suíte de testes de RLS** (ADR 001)
+- [ ] Convite de membro
+- [ ] Consentimento de cookies LGPD na primeira visita
+- [ ] Google OAuth no botão do frame 6:9 _(depende da credencial da Fase 5 — ver `DESIGN_DECISIONS` #20)_
+
+### Pendente de asset
+
+`public/brand/logomark.png` e `public/brand/login-glow.svg` não puderam ser
+baixados do Figma neste ambiente. Geometria reservada. Ver `DESIGN_DECISIONS` #21.
 
 ---
 

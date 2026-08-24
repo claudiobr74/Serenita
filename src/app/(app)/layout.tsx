@@ -1,40 +1,29 @@
 import { AppShell } from "@/components/shell/app-shell";
-import type { Clinic, Profile } from "@/domain/auth/types";
+import { requireViewer } from "@/server/auth/session";
 
 /**
  * Layout da área autenticada.
  *
- * FASE 1: perfil e clínica são placeholders para que o shell possa ser
- * comparado visualmente com o Figma. A autenticação real (Supabase Auth +
- * carregamento do perfil + guard de rota) chega na Fase 3, e substitui estas
- * constantes por `getCurrentProfile()`.
+ * Os placeholders da Fase 1 saíram: perfil e clínica vêm do banco, sob RLS, na
+ * identidade do usuário da sessão.
  *
- * Não é dado clínico e não é dado real — apenas o chrome do shell.
- * Ver IMPLEMENTATION_PLAN.md, Fase 3.
+ * `requireViewer()` é a checagem REAL de acesso — o redirect do `proxy.ts` é
+ * apenas otimista e não prova que existe perfil ativo. Um usuário autenticado
+ * sem perfil (convite pendente, perfil arquivado) cai aqui e volta ao login.
+ *
+ * Como todo Server Component filho pode chamar `getViewer()` de novo sem custo
+ * — `cache()` memoiza por render pass — o layout não precisa repassar o viewer
+ * por props além do que o shell consome.
  */
-const PLACEHOLDER_PROFILE: Profile = {
-  id: "00000000-0000-0000-0000-000000000000",
-  clinicId: "00000000-0000-0000-0000-000000000000",
-  fullName: "Dra. Mariana Costa",
-  role: "psychologist",
-  avatarUrl: null,
-  crp: null,
-};
+export default async function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { profile, clinic } = await requireViewer();
 
-const PLACEHOLDER_CLINIC: Clinic = {
-  id: "00000000-0000-0000-0000-000000000000",
-  name: "Serenitá",
-  slug: "serenita",
-  logoUrl: null,
-};
-
-export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AppShell
-      profile={PLACEHOLDER_PROFILE}
-      clinic={PLACEHOLDER_CLINIC}
-      title="Hoje no Serenitá"
-    >
+    <AppShell profile={profile} clinic={clinic} title="Hoje no Serenitá">
       {children}
     </AppShell>
   );

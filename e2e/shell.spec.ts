@@ -3,32 +3,44 @@ import { expect, test } from "@playwright/test";
 /**
  * Smoke do App Shell.
  *
- * Fase 1: valida que o chrome renderiza e navega. Os fluxos obrigatórios de
- * `docs/TESTING.md` chegam com as telas que eles exercitam.
+ * A partir da Fase 3 o shell exige sessão, então estes testes precisam de um
+ * usuário real com perfil ativo. Sem credencial configurada eles são pulados —
+ * e não silenciosamente: `test.skip` reporta o motivo no relatório.
+ *
+ * Para rodar:
+ *
+ *     E2E_EMAIL=... E2E_SENHA=... npm run test:e2e
+ *
+ * O usuário precisa existir no Supabase do ambiente e ter linha em `profiles`.
+ * A semente vive em `supabase/seed/`, junto das tabelas que ela popula.
  */
 
-test("shell renderiza a navegação e o dashboard", async ({ page }) => {
-  await page.goto("/dashboard");
+const EMAIL = process.env.E2E_EMAIL;
+const SENHA = process.env.E2E_SENHA;
 
+test.beforeEach(async ({ page }) => {
+  test.skip(
+    !EMAIL || !SENHA,
+    "E2E_EMAIL e E2E_SENHA não configurados — o shell exige sessão desde a Fase 3.",
+  );
+
+  await page.goto("/login");
+  await page.getByLabel(/^E-mail profissional\*?$/).fill(EMAIL!);
+  await page.getByLabel(/^Senha\*?$/).fill(SENHA!);
+  await page.getByRole("button", { name: "Entrar no Serenitá" }).click();
+  await page.waitForURL(/\/dashboard$/);
+});
+
+test("shell renderiza a navegação e o dashboard", async ({ page }) => {
   await expect(
     page.getByRole("navigation", { name: "Navegação principal" }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Hoje no Serenitá" }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Bom dia, Dra. Mariana" }),
-  ).toBeVisible();
-});
-
-test("a raiz redireciona para o dashboard", async ({ page }) => {
-  await page.goto("/");
-  await expect(page).toHaveURL(/\/dashboard$/);
 });
 
 test("navegar pela sidebar marca o item ativo", async ({ page }) => {
-  await page.goto("/dashboard");
-
   const nav = page.getByRole("navigation", { name: "Navegação principal" });
   await nav.getByRole("link", { name: "Pacientes" }).click();
 
@@ -40,8 +52,6 @@ test("navegar pela sidebar marca o item ativo", async ({ page }) => {
 });
 
 test("todo item da sidebar leva a uma rota que responde", async ({ page }) => {
-  await page.goto("/dashboard");
-
   const nav = page.getByRole("navigation", { name: "Navegação principal" });
   const hrefs = await nav
     .getByRole("link")
@@ -56,5 +66,7 @@ test("todo item da sidebar leva a uma rota que responde", async ({ page }) => {
   for (const href of hrefs) {
     const response = await page.goto(href);
     expect(response?.status(), `${href} deve responder 200`).toBe(200);
+    // Uma rota que devolvesse o login significaria guard mal configurado.
+    await expect(page).not.toHaveURL(/\/login/);
   }
 });

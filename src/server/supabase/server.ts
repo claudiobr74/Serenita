@@ -28,8 +28,9 @@ export async function createSupabaseServerClient() {
               cookieStore.set(name, value, options);
             }
           } catch {
-            // Server Components não podem escrever cookies. O middleware faz o
-            // refresh da sessão, então ignorar aqui é seguro e esperado.
+            // Server Components não podem escrever cookies. Quem renova a
+            // sessão é o `proxy.ts` — `middleware.ts` foi deprecado no Next 16
+            // e renomeado. Ignorar aqui é seguro e esperado.
           }
         },
       },

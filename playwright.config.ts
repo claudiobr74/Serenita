@@ -1,6 +1,18 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000";
+/**
+ * `localhost`, e não `127.0.0.1`.
+ *
+ * O dev server do Next é inicializado em `localhost` e trata qualquer outra
+ * origem como cross-origin, respondendo 403 aos recursos de `/_next/*`. Com
+ * isso o JS do cliente não carrega, a página não hidrata, e todo teste que
+ * dependa de interação falha — enquanto os que só navegam por link continuam
+ * passando, o que torna a causa difícil de enxergar.
+ *
+ * A alternativa seria `allowedDevOrigins` em `next.config.ts`; apontar para o
+ * host certo não afrouxa nada.
+ */
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 
 export default defineConfig({
   testDir: "./e2e",
