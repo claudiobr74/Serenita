@@ -210,9 +210,19 @@ curl http://localhost:3000/api/health
 - [x] Ação Arquivar/Reativar, que o frame pressupõe mas não desenha (#40)
 - [x] Suíte de RLS em 50 cenários, com 14 sobre paciente e conteúdo clínico
 
-### Fatia 2 — Perfil do paciente ⬜
+### Fatia 2 — Perfil do paciente ✅
 
-- [ ] `/pacientes/[id]` (`6:783`) — tabs Overview · Prontuário · Plano · Timeline · Documentos
+- [x] `/pacientes/[id]` (`6:783`) — banner com dados cadastrais e **sete** tabs, não cinco (#41)
+- [x] Aba Resumo com conteúdo por papel: clínico para o psicólogo designado, cadastral para admin e secretária (#42)
+- [x] Paciente inexistente e invisível sob RLS respondem igual — 404 nos dois casos (#43)
+- [x] "Ver Perfil" na lista (6:617)
+- [x] E2E com sessão compartilhada: um login para a suíte, eliminando falha por limite de taxa
+
+### Fatia 3 — Prontuário e plano ⬜
+
+- [ ] `/pacientes/[id]/prontuario` (`6:1658`) e editor (`6:1562`)
+- [ ] `/pacientes/[id]/plano` (`6:1782`)
+- [ ] Autosave 30s / debounce 500ms com badge "Salvo"
 - [ ] `/pacientes/[id]` (`6:783`) — tabs Overview · Prontuário · Plano · Timeline · Documentos
 - [x] `patients.display_code` — `PAC-###` por clínica (#12)
 - [ ] `/pacientes/[id]/prontuario` (`6:1658`) e editor (`6:1562`)

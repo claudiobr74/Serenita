@@ -1,4 +1,16 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+
+import { ARQUIVO_DE_SESSAO, TEM_CREDENCIAL } from "./sessao";
+
+/**
+ * Reusa a sessão gravada por `auth.setup.ts`: um login para a suíte inteira,
+ * em vez de um por teste. Ver o comentário lá sobre limite de taxa.
+ */
+test.use({ storageState: ARQUIVO_DE_SESSAO });
+
+test.beforeEach(() => {
+  test.skip(!TEM_CREDENCIAL, "E2E_EMAIL e E2E_SENHA não configurados.");
+});
 
 /**
  * Lista e cadastro de pacientes.
@@ -10,9 +22,6 @@ import { expect, type Page, test } from "@playwright/test";
  * O CPF é gerado por projeto, com dígitos verificadores válidos: desktop e
  * tablet rodam em paralelo e o índice `patients_cpf_unico` é por clínica.
  */
-
-const EMAIL = process.env.E2E_EMAIL;
-const SENHA = process.env.E2E_SENHA;
 
 /** Calcula os dois verificadores para uma base de 9 dígitos. */
 function cpfComVerificadores(base9: string): string {
@@ -27,19 +36,6 @@ function cpfComVerificadores(base9: string): string {
   const d2 = dv(`${base9}${d1}`, 11);
   return `${base9}${d1}${d2}`;
 }
-
-async function entrar(page: Page) {
-  await page.goto("/login");
-  await page.getByLabel(/^E-mail profissional\*?$/).fill(EMAIL!);
-  await page.getByLabel(/^Senha\*?$/).fill(SENHA!);
-  await page.getByRole("button", { name: "Entrar no Serenitá" }).click();
-  await page.waitForURL(/\/dashboard$/);
-}
-
-test.beforeEach(async ({ page }) => {
-  test.skip(!EMAIL || !SENHA, "E2E_EMAIL e E2E_SENHA não configurados.");
-  await entrar(page);
-});
 
 test("cadastrar paciente gera PAC-### e ele aparece na lista", async ({
   page,
@@ -119,4 +115,86 @@ test("filtro de status é refletido na URL", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Arquivados" }),
   ).toHaveAttribute("aria-pressed", "true");
+});
+
+test("perfil do paciente: banner, tabs e conteúdo por papel", async ({
+  page,
+}, info) => {
+  const cpf = cpfComVerificadores(
+    info.project.name === "desktop" ? "333666999" : "444777222",
+  );
+  const nome = `Perfil E2E ${info.project.name}`;
+
+  await page.goto("/pacientes");
+  test.skip(
+    (await page.getByRole("row").filter({ hasText: nome }).count()) > 0,
+    "Paciente de execução anterior ainda existe; veja docs/TESTING.md.",
+  );
+
+  // Cadastra com acolhimento clínico, o que exige a sessão ser de psicólogo.
+  await page.goto("/pacientes/novo");
+  await page.getByLabel(/^Nome Completo\*?$/).fill(nome);
+  await page.getByLabel(/^Data de Nascimento\*?$/).fill("1996-03-10");
+  await page.getByLabel(/^CPF\*?$/).fill(cpf);
+  await page.getByLabel(/^Telefone\*?$/).fill("(11) 98888-0000");
+  await page.getByRole("button", { name: "Salvar Paciente" }).click();
+  await page.waitForURL(/\/pacientes$/);
+
+  const linha = page.getByRole("row").filter({ hasText: nome });
+  await linha.getByRole("link", { name: "Ver Perfil" }).click();
+
+  // --- Banner (6:843) -----------------------------------------------------
+  await expect(page.getByRole("heading", { name: nome })).toBeVisible();
+  await expect(page.getByText(/^PAC-\d{3}$/)).toBeVisible();
+  // Idade é derivada da data de nascimento, não digitada.
+  await expect(page.getByText(/Idade: \d+ anos/)).toBeVisible();
+
+  // --- Tabs (6:869) -------------------------------------------------------
+  const tabs = page.getByRole("navigation", { name: "Seções do paciente" });
+  await expect(tabs.getByRole("link", { name: "Resumo" })).toBeVisible();
+
+  // A tab de Prontuário só existe para quem tem acesso clínico. O usuário do
+  // e2e é admin, então ela NÃO deve aparecer — é a RBAC visível na navegação.
+  await expect(tabs.getByRole("link", { name: "Prontuário" })).toHaveCount(0);
+  await expect(tabs.getByRole("link", { name: "Financeiro" })).toBeVisible();
+
+  // --- Conteúdo por papel -------------------------------------------------
+  // Admin vê o cadastro, não o clínico, e a tela diz isso em vez de ficar vazia.
+  await expect(
+    page.getByRole("heading", { name: "Dados cadastrais" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/não é acessível ao seu nível de acesso/),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Acolhimento inicial" }),
+  ).toHaveCount(0);
+
+  // CPF mascarado, como 03 — PATTERNS exige.
+  await expect(page.getByText(/•••\.•••\./)).toBeVisible();
+  await expect(page.getByText(cpf.slice(0, 6))).toHaveCount(0);
+
+  // --- Navegar entre tabs -------------------------------------------------
+  await tabs.getByRole("link", { name: "Financeiro" }).click();
+  await expect(page).toHaveURL(/\/financeiro$/);
+
+  // Limpeza.
+  await page.goto("/pacientes");
+  await page
+    .getByRole("row")
+    .filter({ hasText: nome })
+    .getByRole("button", { name: "Arquivar" })
+    .click();
+  await expect(
+    page.getByRole("row").filter({ hasText: nome }).getByText("Arquivado"),
+  ).toBeVisible();
+});
+
+test("id inexistente não revela nada", async ({ page }) => {
+  // Inexistente e invisível-sob-RLS precisam ser indistinguíveis: distinguir
+  // confirmaria a existência do paciente a quem não pode vê-lo.
+  const resposta = await page.goto(
+    "/pacientes/00000000-0000-0000-0000-000000000000",
+  );
+  expect(resposta?.status()).toBe(404);
 });

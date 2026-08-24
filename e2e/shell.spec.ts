@@ -1,5 +1,19 @@
 import { expect, test } from "@playwright/test";
 
+import { ARQUIVO_DE_SESSAO, TEM_CREDENCIAL } from "./sessao";
+
+/**
+ * Reusa a sessão gravada por `auth.setup.ts`: um login para a suíte inteira,
+ * em vez de um por teste. Ver o comentário lá sobre limite de taxa.
+ */
+test.use({ storageState: ARQUIVO_DE_SESSAO });
+
+test.beforeEach(async ({ page }) => {
+  test.skip(!TEM_CREDENCIAL, "E2E_EMAIL e E2E_SENHA não configurados.");
+  // A sessão vem do estado gravado; o que falta é chegar na tela.
+  await page.goto("/dashboard");
+});
+
 /**
  * Smoke do App Shell.
  *
@@ -14,22 +28,6 @@ import { expect, test } from "@playwright/test";
  * O usuário precisa existir no Supabase do ambiente e ter linha em `profiles`.
  * A semente vive em `supabase/seed/`, junto das tabelas que ela popula.
  */
-
-const EMAIL = process.env.E2E_EMAIL;
-const SENHA = process.env.E2E_SENHA;
-
-test.beforeEach(async ({ page }) => {
-  test.skip(
-    !EMAIL || !SENHA,
-    "E2E_EMAIL e E2E_SENHA não configurados — o shell exige sessão desde a Fase 3.",
-  );
-
-  await page.goto("/login");
-  await page.getByLabel(/^E-mail profissional\*?$/).fill(EMAIL!);
-  await page.getByLabel(/^Senha\*?$/).fill(SENHA!);
-  await page.getByRole("button", { name: "Entrar no Serenitá" }).click();
-  await page.waitForURL(/\/dashboard$/);
-});
 
 test("shell renderiza a navegação e o dashboard", async ({ page }) => {
   await expect(

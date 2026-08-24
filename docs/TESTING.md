@@ -180,6 +180,24 @@ homônimos forem cadastrados no repositório, têm precedência.
 
 A versão do Node vem de `.nvmrc`, para que CI e máquina local não divirjam.
 
+### Um login para a suíte inteira
+
+`e2e/auth.setup.ts` autentica uma vez e grava o estado; os specs que precisam
+de sessão o reusam com `test.use({ storageState })`.
+
+Não é só velocidade. Antes, cada teste fazia o próprio `signInWithPassword`, e
+o **Supabase Auth limita a taxa de login**: execuções seguidas da suíte
+falhavam por cota estourada — um modo de falha que não é defeito do produto e
+que custa caro porque parece um. A suíte passou de ~4,8min com falhas
+intermitentes para ~50s estável.
+
+Duas armadilhas que isso cria, ambas cobertas por comentário no código:
+
+- `auth.spec.ts` **não** usa o estado: ele testa o comportamento sem sessão.
+- `browser.newContext()` dentro de um arquivo com `test.use({ storageState })`
+  **herda** a sessão. Onde um contexto realmente limpo é necessário — abrir um
+  convite como visitante — é preciso `newContext({ storageState: undefined })`.
+
 ### Testes que exigem sessão
 
 `e2e/shell.spec.ts` precisa de um usuário real com perfil ativo, e por isso é

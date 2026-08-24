@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Route } from "next";
 import Link from "next/link";
 import { GlobeIcon, HomeIcon, UsersIcon } from "lucide-react";
 
@@ -169,10 +169,19 @@ export default async function PacientesPage({
                   )}
 
                   <TableCell>
-                    <AcaoDeStatus
-                      pacienteId={paciente.id}
-                      statusAtual={paciente.status}
-                    />
+                    <span className="flex items-center gap-4">
+                      {/* "Ver Perfil" (6:617). */}
+                      <Link
+                        href={`/pacientes/${paciente.id}` as Route}
+                        className="rounded-sm text-body-sm font-semibold text-action-primary hover:underline"
+                      >
+                        Ver Perfil
+                      </Link>
+                      <AcaoDeStatus
+                        pacienteId={paciente.id}
+                        statusAtual={paciente.status}
+                      />
+                    </span>
                   </TableCell>
                 </TableRow>
               ))}

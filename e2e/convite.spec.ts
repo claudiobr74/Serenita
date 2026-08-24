@@ -1,5 +1,17 @@
 import { expect, type Page, test } from "@playwright/test";
 
+import { ARQUIVO_DE_SESSAO, TEM_CREDENCIAL } from "./sessao";
+
+/**
+ * Reusa a sessão gravada por `auth.setup.ts`: um login para a suíte inteira,
+ * em vez de um por teste. Ver o comentário lá sobre limite de taxa.
+ */
+test.use({ storageState: ARQUIVO_DE_SESSAO });
+
+test.beforeEach(() => {
+  test.skip(!TEM_CREDENCIAL, "E2E_EMAIL e E2E_SENHA não configurados.");
+});
+
 /**
  * Fluxo de convite, ponta a ponta.
  *
@@ -13,9 +25,6 @@ import { expect, type Page, test } from "@playwright/test";
  * O e-mail usado é de domínio reservado para exemplo (RFC 2606), então mesmo
  * com envio ligado nada sairia para uma caixa de verdade.
  */
-
-const EMAIL = process.env.E2E_EMAIL;
-const SENHA = process.env.E2E_SENHA;
 
 /**
  * E-mail por projeto.
@@ -33,16 +42,6 @@ function emailDoConvidado(projeto: string): string {
 function linhaDoConvidado(page: Page, convidado: string) {
   return page.getByRole("row").filter({ hasText: convidado });
 }
-
-test.beforeEach(async ({ page }) => {
-  test.skip(!EMAIL || !SENHA, "E2E_EMAIL e E2E_SENHA não configurados.");
-
-  await page.goto("/login");
-  await page.getByLabel(/^E-mail profissional\*?$/).fill(EMAIL!);
-  await page.getByLabel(/^Senha\*?$/).fill(SENHA!);
-  await page.getByRole("button", { name: "Entrar no Serenitá" }).click();
-  await page.waitForURL(/\/dashboard$/);
-});
 
 test("convite: gerar link, abrir sem sessão e revogar", async ({
   page,
@@ -96,7 +95,11 @@ test("convite: gerar link, abrir sem sessão e revogar", async ({
   // --- Quem chega sem sessão vê o convite ----------------------------------
   // É o caminho real do convidado, e prova que o token gravado corresponde ao
   // emitido — a busca é por SHA-256, então um token errado não acharia nada.
-  const contextoLimpo = await browser.newContext();
+  // `storageState: undefined` é obrigatório aqui: com `test.use({ storageState })`
+  // no arquivo, um `newContext()` sem opções HERDA a sessão do admin — e o
+  // teste passaria a exercitar o caminho errado, que é justamente o guard de
+  // "Conta diferente" verificado logo acima.
+  const contextoLimpo = await browser.newContext({ storageState: undefined });
   const visitante = await contextoLimpo.newPage();
   try {
     const resposta = await visitante.goto(caminho);

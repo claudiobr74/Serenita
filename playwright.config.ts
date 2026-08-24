@@ -30,10 +30,22 @@ export default defineConfig({
       : undefined,
   },
   projects: [
+    /**
+     * Autentica uma vez e grava o estado. Os demais projetos dependem dele.
+     *
+     * Sem isto, cada teste fazia o próprio login e o Supabase Auth limitava a
+     * taxa — execuções seguidas da suíte falhavam por cota, não por defeito.
+     */
+    // O estado gravado NÃO é aplicado globalmente: cada spec opta com
+    // `test.use({ storageState })`. `auth.spec.ts` deliberadamente não opta,
+    // porque testa o comportamento sem sessão.
+    { name: "setup", testMatch: /auth\.setup\.ts/ },
+
     // Desktop >= 1280px e Tablet 768-1279px são os breakpoints que o Figma
     // exige no Definition of Done. Ver docs/FIGMA_AUDIT.md §10.
     {
       name: "desktop",
+      dependencies: ["setup"],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1440, height: 1024 },
@@ -41,6 +53,7 @@ export default defineConfig({
     },
     {
       name: "tablet",
+      dependencies: ["setup"],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1194, height: 834 },

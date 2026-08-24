@@ -662,3 +662,53 @@ admin, que é fluxo próprio.
 
 Arquivar **não remove da aba Todos**, e isso é intencional: arquivar não é
 apagar. O paciente muda de estado e continua visível onde o filtro o inclui.
+
+---
+
+## #41 — O perfil do paciente tem sete tabs, não cinco
+
+`IMPLEMENTATION_PLAN.md` previa cinco (Overview · Prontuário · Plano ·
+Timeline · Documentos). O frame `ProfileTabs` (6:869) traz **sete**: Resumo,
+Prontuário, Plano Terapêutico, Sessões, Documentos, Financeiro e
+Consentimentos.
+
+"Timeline" do plano corresponde a "Sessões" no frame; Financeiro e
+Consentimentos não estavam previstos.
+
+**Decisão:** seguir o frame. Cada tab é rota de verdade, com
+`PhasePlaceholder` nas que ainda não existem — uma tab que não navega seria
+pior do que uma tab que explica o que falta.
+
+As tabs são filtradas por papel, como a sidebar e as seções de Configurações:
+Prontuário, Plano e Sessões só aparecem para quem tem acesso clínico.
+
+## #42 — A aba "Resumo" mostra conteúdos diferentes por papel
+
+O frame `TabGrid` (6:885) traz Objetivos Terapêuticos com progresso, Última
+Evolução Clínica, contadores de sessão, Próxima Sessão e Pendências do
+Paciente. **Tudo isso é clínico ou depende de sessões.**
+
+Renderizar essa tela para um admin contradiria a RBAC Matrix. Renderizá-la
+vazia seria pior: sugeriria que existe algo sendo escondido, quando aquele
+papel jamais a verá.
+
+**Decisão:** a aba mostra conteúdos diferentes por papel.
+
+| Papel               | Vê                                                       |
+| ------------------- | -------------------------------------------------------- |
+| Psicólogo designado | Acolhimento clínico, e o que vier do Plano e das sessões |
+| Admin e secretária  | Dados cadastrais, com a razão dita explicitamente        |
+
+Os consentimentos aparecem para os dois: são gate legal, não conteúdo clínico,
+e o indicador não depende só de cor — há ícone distinto e texto, por exigência
+de acessibilidade do `10 — DEV HANDOFF`.
+
+## #43 — Paciente inexistente e invisível são indistinguíveis
+
+`carregarPaciente` devolve `null` tanto para id que não existe quanto para
+paciente que a RLS esconde, e a página responde 404 nos dois casos.
+
+**Decisão deliberada.** Um psicólogo abrindo o paciente de um colega precisa
+ver exatamente o que veria com um id inventado. Distinguir — 403 para um, 404
+para outro — confirmaria a existência do paciente, que já é informação. Há
+teste e2e para isso.
