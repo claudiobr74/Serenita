@@ -218,3 +218,98 @@ Tokens **derivados** (não presentes nos quadros de Foundations, mas usados de f
 O README declara as duas páginas. `get_metadata` sem `nodeId` lista apenas `00`; as demais foram alcançadas por IDs sequenciais a partir de `6:8434`. As páginas `09` e `99` não responderam nessa sequência.
 
 **Impacto:** nenhum. O README classifica `09` como "future" e `99` como "deprecated or superseded designs" — nenhuma das duas é normativa. Registrado apenas para que a auditoria seja honesta sobre o que **não** foi lido.
+
+---
+
+## #15 — Dois designs de Toast conflitantes
+
+**Status:** `DECIDIDO`
+
+O arquivo tem dois toasts que não se parecem:
+
+| Fonte                                          | Design                                                                                                                                                                                                                                              |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `02 — COMPONENTS / Toast` (12:240)             | Card branco, `w 360`, `radius 10`, borda, **barra de acento 4×24** colorida à esquerda, shadow-md. Título 14 SemiBold, mensagem 13.                                                                                                                 |
+| `06 — DESKTOP / error-warning-states` (6:6212) | **Preenchido**: sucesso `bg action-primary` com texto branco, erro `bg action-danger` com texto branco, info branco com borda. `radius 12`, `p 16`, ícone 18 + fechar 14, shadow `0 16px 24px rgba(31,36,33,.04)`. Título 13 SemiBold, mensagem 12. |
+
+**Decisão.** Seguir o das telas, pelo mesmo precedente de #1: quando o component set diverge de `06 — DESKTOP`, as telas prevalecem. O toast preenchido também comunica severidade com mais força, o que importa num produto clínico onde uma falha de gravação não pode passar despercebida.
+
+O `warning` não existe em nenhuma das duas fontes — foi derivado por consistência, usando o par `status-warning-bg` / `status-warning` que o Figma já define.
+
+---
+
+## #16 — Tamanho e variante de botão que só existem nas telas
+
+**Status:** `DECIDIDO`
+
+O component set `Button` (12:147) define `SM`/`MD`/`LG` e as variantes Primary/Secondary/Ghost/Danger. O design-to-code mapping (12:637) confirma `MD` = `px-4 py-2 text-sm font-medium`.
+
+Só que os botões de ação desenhados nas telas de `06 — DESKTOP` não são nenhum desses:
+
+| Onde                                    | Spec medida                                    |
+| --------------------------------------- | ---------------------------------------------- |
+| EmptyState CTA (6:5973)                 | `px 20 · py 12 · radius 8 · 14px **SemiBold**` |
+| ErrorState "Tentar Novamente" (6:6180)  | idem                                           |
+| Banner de consentimento (6:6201)        | idem                                           |
+| EmptyState secundário (6:5982)          | idem, mas `bg branco + border`                 |
+| ErrorState "Trabalhar Offline" (6:6183) | idem                                           |
+
+Isso fica entre `MD` (px 16, py 8) e `LG` (px 24, py 12), com peso SemiBold em vez de Medium. E o secundário das telas é **outline** (branco com borda), não o `Secondary` bege do component set.
+
+**Decisão.** Preservar as duas verdades em vez de escolher:
+
+- `size="cta"` — o botão de ação das telas.
+- `variant="outline"` — a ação secundária das telas.
+
+`sm`/`md`/`lg` e `secondary` seguem exatamente o component set, que é confirmado pelo handoff. Nada foi sobrescrito; o vocabulário apenas cresceu para cobrir o que as telas realmente desenham.
+
+---
+
+## #17 — Contraste: a paleta do Figma falha na regra de acessibilidade do próprio Figma
+
+**Status:** `DECIDIDO` — correção mínima aplicada
+
+Auditoria automatizada de contraste sobre o design system renderizado (todos os nós de texto, comparados com o fundo real computado) encontrou combinações abaixo do mínimo AA de 4.5:1 que `10 — DEV HANDOFF / Accessibility` exige explicitamente.
+
+**Falhas na paleta do Figma:**
+
+| Combinação                                                  | Figma                 | Ratio | Mínimo |
+| ----------------------------------------------------------- | --------------------- | ----: | -----: |
+| `status-error` como texto sobre `status-error-bg`           | `#C2735A` / `#F9ECE8` |  3.09 |    4.5 |
+| `status-info` como texto sobre `status-info-bg`             | `#5B7FA6` / `#EBF1F7` |  3.67 |    4.5 |
+| `status-success` como texto sobre `status-success-bg`       | `#3A7D5C` / `#E8F5EE` |  4.39 |    4.5 |
+| `status-error` como texto sobre branco                      | `#C2735A` / `#FFFFFF` |  3.56 |    4.5 |
+| Branco sobre `action-danger` (Button Danger, Toast de erro) | `#FFFFFF` / `#C2735A` |  3.56 |    4.5 |
+| `text-muted` como texto de conteúdo                         | `#8A8F8A` / `#FFFFFF` |  3.29 |    4.5 |
+
+**O próprio Figma já resolveu esse problema uma vez.** Em `warning`, o tom de preenchimento (`#D6A374`) é claro demais para texto, então o arquivo usa um tom de texto separado e mais escuro (`#846447` = 4.81:1). O mesmo cuidado simplesmente não foi estendido aos outros status.
+
+**Correções aplicadas** — todas seguindo o padrão que o arquivo já estabeleceu, sem inventar cor nova:
+
+1. **Tokens `*-text` por status.** `status-success-text` `#397B5B`, `status-error-text` `#9B5C48`, `status-info-text` `#506F92` — mesmo matiz, escurecidos até 4.5:1. Usados **apenas em texto**. Os tons originais seguem intactos para preenchimento, ícone, borda e barra de acento, onde o mínimo é 3:1 e todos passam.
+
+2. **`action-danger` `#C2735A` → `#A8644E`.** `#A8644E` não é cor nova: é o `Button Danger Hover` do próprio component set, e dá 4.57:1 com branco. O hover desce um passo, para `#905643`. Reversível em duas linhas de `tokens.css`.
+
+3. **`text-muted` intocado.** Continua exatamente como o Figma define, para placeholder, ícone e texto decorativo — onde os 3:1 se aplicam ou há isenção. Texto de conteúdo (hints, mensagens de apoio, legendas) passou a usar `text-secondary` `#5D625E` (6.22:1), que já existia na paleta. Nenhuma mudança de token.
+
+4. **Mensagem do toast de erro.** O Figma usa `status-error-bg` (`#F9ECE8`); sobre o `action-danger` corrigido isso dá 3.96:1. Como o fundo é escuro, branco (4.57:1) é o único tom que atinge AA. A hierarquia entre título e mensagem passa a vir de peso e tamanho, como já acontece no toast de sucesso.
+
+**Resultado:** de 93 falhas AA para **zero**, verificado no browser.
+
+Esta é a aplicação literal da regra §2 do prompt-mestre — "se houver conflito entre Figma e segurança/integridade, segurança vence, documentando a divergência" — com a agravante de que aqui o Figma conflita com uma regra do próprio Figma.
+
+**Recomendação ao design:** revisar `#C2735A` e `#8A8F8A` na fonte. Como estão, ambos são inutilizáveis para texto pequeno sob a meta declarada de WCAG AA.
+
+---
+
+## #18 — `tailwind-merge` descartava classes de cor silenciosamente
+
+**Status:** `DECIDIDO`
+
+Não é uma decisão de design, mas o defeito nasceu da nomenclatura de tokens e vale registrar.
+
+A escala tipográfica do Serenità gera utilitários como `text-body` e `text-h2`. O `tailwind-merge` não conhece essa escala e classifica todo `text-*` como cor. Ao receber `text-text-inverse` e `text-body` na mesma chamada de `cn()`, ele descartava a cor.
+
+O efeito: **todo botão primário e de perigo ficou com texto `#1F2421` sobre fundo verde escuro — 1.79:1.** Lint, typecheck e build passaram; só a auditoria de contraste no browser encontrou.
+
+Corrigido com `extendTailwindMerge` em `src/lib/cn.ts`, declarando a escala como grupo `font-size`. A lista precisa acompanhar os tokens `--text-*` de `tokens.css`.

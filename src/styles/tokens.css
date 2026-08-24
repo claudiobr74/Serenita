@@ -43,29 +43,57 @@
   /* ---------------------------------------------------------------- *
    * Cores — Ações
    * ---------------------------------------------------------------- */
-  --color-action-primary: #3a4f43;
+  --color-action-primary: #3a4f43; /* branco sobre ele = 8.83:1 */
   --color-action-primary-hover: #2d3e34;
   --color-action-secondary: #eae6df;
   --color-action-secondary-hover: #ddd9d2; /* [derivado] Button Secondary Hover */
-  --color-action-danger: #c2735a;
-  --color-action-danger-hover: #a8644e; /* [derivado] Button Danger Hover */
+
+  /**
+   * CORRIGIDO PARA ACESSIBILIDADE.
+   *
+   * O Figma define `color/action/danger` = #C2735A com texto branco em cima
+   * (Button Danger, Toast de erro). Isso dá 3.56:1 — abaixo do mínimo AA de
+   * 4.5:1 que o próprio arquivo exige em `10 — DEV HANDOFF / Accessibility`.
+   *
+   * A correção usa um tom que já existe na paleta do Serenità: #A8644E é o
+   * `Button Danger Hover` do component set, e dá 4.57:1 com branco. O hover
+   * desce um passo. Nenhuma cor nova foi inventada.
+   *
+   * Reversível em duas linhas. Ver docs/DESIGN_DECISIONS.md #17.
+   */
+  --color-action-danger: #a8644e; /* Figma: #C2735A (3.56:1) */
+  --color-action-danger-hover: #905643;
 
   /* ---------------------------------------------------------------- *
    * Cores — Status
    *
-   * Os pares *-bg / *-text vêm do component set Badge. Note que
-   * `warning-text` (#846447) é mais escuro que `warning` (#D6A374): o Figma usa
-   * o tom escuro para texto sobre `warning-bg`, atingindo contraste AA.
+   * Os pares *-bg / *-text vêm do component set Badge.
+   *
+   * O Figma estabelece o padrão em `warning`: o tom de PREENCHIMENTO (#D6A374)
+   * é claro demais para texto, então o arquivo usa um tom de TEXTO mais escuro
+   * (#846447 = 4.81:1 sobre warning-bg). Só que o mesmo cuidado não foi
+   * aplicado a success, error e info, que ficam abaixo de 4.5:1 como texto.
+   *
+   * Estendemos o padrão do próprio arquivo: cada status ganha um `*-text`
+   * escurecido no mesmo matiz, usado APENAS para texto. Os tons originais
+   * seguem intactos para preenchimento, ícone, borda e barra de acento, onde
+   * o mínimo é 3:1 e todos passam. Ver docs/DESIGN_DECISIONS.md #17.
    * ---------------------------------------------------------------- */
   --color-status-success: #3a7d5c;
   --color-status-success-bg: #e8f5ee; /* [derivado] */
+  --color-status-success-text: #397b5b; /* Figma: #3A7D5C (4.39:1) -> 4.50:1 */
+
   --color-status-warning: #d6a374;
   --color-status-warning-bg: #f8f1e9; /* [derivado] */
-  --color-status-warning-text: #846447; /* [derivado] */
+  --color-status-warning-text: #846447; /* [derivado] já correto — 4.81:1 */
+
   --color-status-error: #c2735a;
   --color-status-error-bg: #f9ece8; /* [derivado] */
+  --color-status-error-text: #9b5c48; /* Figma: #C2735A (3.09:1) -> 4.53:1 */
+
   --color-status-info: #5b7fa6;
   --color-status-info-bg: #ebf1f7; /* [derivado] */
+  --color-status-info-text: #506f92; /* Figma: #5B7FA6 (3.67:1) -> 4.58:1 */
 
   /* ---------------------------------------------------------------- *
    * Cores — Bordas
@@ -111,20 +139,35 @@
   /* ---------------------------------------------------------------- *
    * Radius — [derivado] dos component sets. Ver FIGMA_AUDIT.md §2.4
    * ---------------------------------------------------------------- */
-  --radius-xs: 4px; /* KeyShortcut */
-  --radius-sm: 6px; /* Button SM, Tag, Modal close */
+  --radius-xs: 4px; /* KeyShortcut, barra de skeleton */
+  --radius-sm: 6px; /* Button SM, Tag, Modal close, chip mono */
   --radius-md: 8px; /* Button MD, Input, NavItem, SearchField */
-  --radius-lg: 10px; /* Button LG, Toast */
-  --radius-xl: 12px; /* Card */
-  --radius-2xl: 16px; /* Modal, cards de métrica */
+  --radius-lg: 10px; /* Button LG */
+  --radius-xl: 12px; /* Card, banner de alerta, toast das telas */
+  --radius-2xl: 16px; /* Modal, cards de métrica, cards de estado */
+  --radius-3xl: 20px; /* [derivado] card de EmptyState (6:5967) */
   --radius-full: 9999px; /* Badge, Avatar */
 
   /* ---------------------------------------------------------------- *
-   * Sombras — [derivado] dos component sets. Ver FIGMA_AUDIT.md §2.5
+   * Skeleton — [derivado] de `loading-sync-states` (6:6071)
+   *
+   * Três tons quentes, distintos de `surface-muted`. `subtle` marca a linha
+   * secundária de um item; `strong` marca blocos de destaque.
+   * ---------------------------------------------------------------- */
+  --color-skeleton-base: #f0ece6;
+  --color-skeleton-subtle: #f7f5f0;
+  --color-skeleton-strong: #e8e2d9;
+
+  /* ---------------------------------------------------------------- *
+   * Sombras — [derivado] dos component sets e das telas.
+   * Ver FIGMA_AUDIT.md §2.5
    * ---------------------------------------------------------------- */
   --shadow-sm: 0 2px 6px rgb(0 0 0 / 0.06); /* Card Elevated */
-  --shadow-md: 0 4px 8px rgb(0 0 0 / 0.08); /* Toast */
+  --shadow-md: 0 4px 8px rgb(0 0 0 / 0.08); /* Toast do component set */
   --shadow-lg: 0 8px 16px rgb(0 0 0 / 0.12); /* Modal */
+  --shadow-card: 0 4px 8px rgb(31 36 33 / 0.02); /* EmptyState (6:5967) */
+  --shadow-toast: 0 16px 24px rgb(31 36 33 / 0.04); /* Toast das telas (6:6212) */
+  --shadow-brand: 0 8px 12px rgb(58 79 67 / 0.2); /* Logomark do splash (6:6157) */
 
   /* ---------------------------------------------------------------- *
    * Motion — `10 — DEV HANDOFF / Motion Tokens`

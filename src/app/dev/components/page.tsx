@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 
 import { cn } from "@/lib/cn";
 
+import { Showcase } from "./showcase";
+
 /**
  * Component playground — rota interna de desenvolvimento.
  *
@@ -145,7 +147,7 @@ export default function ComponentPlaygroundPage() {
     <div className="min-h-dvh bg-background-secondary p-8">
       <div className="mx-auto flex max-w-5xl flex-col gap-10">
         <header className="flex flex-col gap-2">
-          <p className="text-overline font-medium tracking-wide text-text-muted uppercase">
+          <p className="text-overline font-medium tracking-wide text-text-secondary uppercase">
             Serenità · Development only
           </p>
           <h1 className="font-display text-display font-bold text-text-primary">
@@ -154,9 +156,12 @@ export default function ComponentPlaygroundPage() {
           <p className="text-body text-text-secondary">
             Design tokens extraídos de{" "}
             <code className="font-mono text-body-sm">01 — FOUNDATIONS</code>.
-            Compare lado a lado com o Figma. Componentes entram aqui na Fase 2.
+            Compare lado a lado com o Figma. Cada seção nomeia o node de onde a
+            spec veio.
           </p>
         </header>
+
+        <Showcase />
 
         <Section title="Cores — Backgrounds">
           <Swatches items={BACKGROUNDS} />
@@ -181,7 +186,7 @@ export default function ComponentPlaygroundPage() {
                 <span className={cn(cls, "font-display text-text-primary")}>
                   {name} — Serenitá
                 </span>
-                <span className="shrink-0 font-mono text-caption text-text-muted">
+                <span className="shrink-0 font-mono text-caption text-text-secondary">
                   {spec}
                 </span>
               </div>
@@ -197,7 +202,7 @@ export default function ComponentPlaygroundPage() {
                   {name}
                 </span>
                 <span className={cn("h-6 bg-action-primary", cls)} />
-                <span className="font-mono text-caption text-text-muted">
+                <span className="font-mono text-caption text-text-secondary">
                   {value}
                 </span>
               </div>
@@ -218,7 +223,7 @@ export default function ComponentPlaygroundPage() {
                 <span className="font-mono text-caption text-text-secondary">
                   {name}
                 </span>
-                <span className="font-mono text-caption text-text-muted">
+                <span className="font-mono text-caption text-text-secondary">
                   {value}
                 </span>
               </div>
@@ -239,7 +244,9 @@ export default function ComponentPlaygroundPage() {
                 <span className="font-mono text-caption text-text-secondary">
                   {name}
                 </span>
-                <span className="text-caption text-text-muted">{usage}</span>
+                <span className="text-caption text-text-secondary">
+                  {usage}
+                </span>
               </div>
             ))}
           </div>
@@ -258,7 +265,7 @@ export default function ComponentPlaygroundPage() {
                 <span className="font-mono text-caption text-text-secondary">
                   {duration}
                 </span>
-                <span className="flex-1 text-right text-caption text-text-muted">
+                <span className="flex-1 text-right text-caption text-text-secondary">
                   {usage}
                 </span>
               </div>
@@ -299,7 +306,7 @@ function Swatches({ items }: { items: readonly Swatch[] }) {
           <span className="font-mono text-caption text-text-primary">
             {figmaToken}
           </span>
-          <span className="font-mono text-caption text-text-muted">
+          <span className="font-mono text-caption text-text-secondary">
             {hex} · {usage}
           </span>
         </div>

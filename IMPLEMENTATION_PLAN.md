@@ -10,11 +10,12 @@ Plano de execução em fases, derivado da auditoria integral do Figma (`docs/FIG
 
 ## Estado atual
 
-| Fase           | Estado           |
-| -------------- | ---------------- |
-| 0 — Discovery  | ✅ Concluída     |
-| 1 — Foundation | ✅ Concluída     |
-| 2–12           | ⬜ Não iniciadas |
+| Fase              | Estado           |
+| ----------------- | ---------------- |
+| 0 — Discovery     | ✅ Concluída     |
+| 1 — Foundation    | ✅ Concluída     |
+| 2 — Design System | ✅ Concluída     |
+| 3–12              | ⬜ Não iniciadas |
 
 Projeto Supabase: `Serenita` — ref `bsaoujbfanluzggjvhfa`, região `us-west-2`.
 
@@ -26,7 +27,7 @@ Projeto Supabase: `Serenita` — ref `bsaoujbfanluzggjvhfa`, região `us-west-2`
 - [x] Inspeção do repositório — greenfield, sem código legado
 - [x] `docs/FIGMA_AUDIT.md`
 - [x] `docs/ARCHITECTURE.md`
-- [x] `docs/DESIGN_DECISIONS.md` — 14 divergências registradas
+- [x] `docs/DESIGN_DECISIONS.md` — divergências registradas (18 até a Fase 2)
 - [x] `docs/adr/001` … `004`
 - [x] `IMPLEMENTATION_PLAN.md`
 
@@ -51,7 +52,7 @@ Projeto Supabase: `Serenita` — ref `bsaoujbfanluzggjvhfa`, região `us-west-2`
 
 ---
 
-## Fase 1 — Foundation 🚧
+## Fase 1 — Foundation ✅
 
 **Objetivo:** base sobre a qual as telas possam ser construídas com fidelidade, sem retrabalho.
 
@@ -90,29 +91,52 @@ curl http://localhost:3000/api/health
 
 ---
 
-## Fase 2 — Design System
+## Fase 2 — Design System ✅
 
 **Objetivo:** estabilizar a camada de componentes antes de criar dezenas de páginas (§58).
 
 **Primitivos com component set no Figma** — spec medida em `FIGMA_AUDIT.md` §3:
 
-- [ ] Button — 4 styles × 3 sizes × 3 states + `focus-visible` e `loading` (`DESIGN_DECISIONS` #4)
-- [ ] Input — 4 states
-- [ ] Badge — 5 types · Tag — 4 types · Avatar — 3 sizes
-- [ ] Card — 3 variants (#5)
-- [ ] TableRow — 3 states
-- [ ] Toast — 4 types
-- [ ] Modal
+- [x] Button — 4 variants × 3 sizes × 3 states + `focus-visible` e `loading` (#4), mais `cta` e `outline` que só existem nas telas (#16)
+- [x] Input — 4 states
+- [x] Badge — 5 types · Tag — 4 types · Avatar — 3 sizes
+- [x] Card — 3 variants (#5)
+- [x] TableRow — 3 states
+- [x] Toast — 4 types, seguindo o design das telas (#15)
+- [x] Modal — `<dialog>` nativo: focus trap, Escape e restauração de foco sem dependência
 
-**Primitivos derivados de instâncias desenhadas em telas** (#6): Tabs · Skeleton · EmptyState · ErrorState · Search · Command Palette · IconButton · Sheet/Drawer · Checkbox · Switch
+**Primitivos derivados de instâncias desenhadas nas telas** (#6):
 
-**Primitivos por consistência**, sem instância no Figma (#6): Textarea · Select · MultiSelect · Radio · Tooltip · Popover · Dropdown · Pagination
+- [x] EmptyState — `empty-states` (6:5957), com variação `positive`
+- [x] ErrorState — `error-warning-states` (6:6173)
+- [x] AlertBanner — banner de consentimento (6:6195), 3 tons
+- [x] Skeleton / SkeletonList — `loading-sync-states` (6:6084), 3 tons quentes
+- [x] TranscriptionProcessing · SyncProcessing · AIProcessing · AudioWaveform · MonoChip — (6:6121, 6:6142, 6:6149)
+- [x] Tabs / TabLinks — `perfil-paciente` (6:783), com navegação por setas
+- [x] IconButton — NotificationButton do TopBar (6:112)
+- [x] Sheet — `interaction-states`, translateY + backdrop blur 16px em 400ms
 
-- [ ] Sistema de motion — tokens + matched geometry + `prefers-reduced-motion`
-- [ ] Comportamento responsivo desktop/tablet
-- [ ] Todo componente no `/dev/components` com variants, states e sizes
+**Primitivos por consistência**, sem instância no Figma (#6):
 
-**DoD por componente** (§77): bate com o Figma · tem states · tem responsivo · tem acessibilidade · tem tipos · não duplica outro · está no playground.
+- [x] Textarea · Select · Checkbox · Switch · Tooltip
+- [ ] MultiSelect · Radio · Popover · Dropdown · Pagination — sem uso ainda; entram na fase que os exigir
+
+**Sistema e qualidade:**
+
+- [x] Sistema de motion em `src/lib/motion.ts` — tokens, materialização, sheet, backdrop e alternativa reduzida
+- [x] `prefers-reduced-motion` e `prefers-reduced-transparency` respeitados
+- [x] Comportamento responsivo desktop/tablet nos componentes
+- [x] Todo componente no `/dev/components`, com o node do Figma de origem
+- [x] 34 testes unitários e de componente
+- [x] **Auditoria de contraste WCAG AA no browser: 0 falhas** (era 93)
+
+### Achados relevantes
+
+- **Bug crítico de contraste** — `tailwind-merge` descartava classes de cor por causa da escala tipográfica; todo botão primário ficou com 1.79:1. Corrigido e coberto por teste de regressão (#18).
+- **A paleta do Figma falha na regra de acessibilidade do próprio Figma** em 6 combinações. Correção mínima aplicada, sem inventar cor nova (#17).
+- **Dois designs de Toast conflitantes** no arquivo; seguimos as telas (#15).
+
+**Definition of Done:** cada componente bate com o Figma, tem states, responsivo, acessibilidade, tipos, não duplica outro e está no playground. **Atendido.**
 
 ---
 

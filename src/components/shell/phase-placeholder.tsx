@@ -26,7 +26,7 @@ export function PhasePlaceholder({
         "border-border-default bg-background-primary p-8",
       )}
     >
-      <span className="text-overline font-medium tracking-wide text-text-muted uppercase">
+      <span className="text-overline font-medium tracking-wide text-text-secondary uppercase">
         Não implementado
       </span>
       <h2 className="font-display text-h2 font-semibold text-text-primary">
