@@ -149,22 +149,35 @@ export async function cadastrarPaciente(
     return { erro: "Não foi possível cadastrar agora. Tente novamente." };
   }
 
-  // Seção 2 só é gravada por quem tem acesso clínico. A RLS de
-  // `patient_clinical_intake` recusaria de qualquer forma; barrar aqui evita
-  // um erro cru depois de o paciente já ter sido criado.
+  // Seção 2 só é gravada por quem tem acesso clínico. A RLS das tabelas
+  // clínicas recusaria de qualquer forma; barrar aqui evita um erro cru depois
+  // de o paciente já ter sido criado.
+  //
+  // A demanda inicial vai para o PRONTUÁRIO, e não para o acolhimento: é a
+  // seção "Demanda Inicial" do frame 6:1658, e o cadastro apenas a inaugura.
+  // Ver a migration 20260824235613.
   const temConteudoClinico =
     Boolean(dados.abordagem) ||
     Boolean(dados.frequencia) ||
     Boolean(dados.demanda);
 
-  if (clinico && temConteudoClinico) {
+  if (clinico && (dados.abordagem || dados.frequencia)) {
     await supabase.from("patient_clinical_intake").insert({
       patient_id: paciente.id,
       clinic_id: viewer.clinic.id,
       therapeutic_approach: dados.abordagem || null,
       suggested_frequency: dados.frequencia || null,
-      initial_complaint: dados.demanda || null,
       created_by: viewer.userId,
+    });
+  }
+
+  if (clinico && dados.demanda) {
+    await supabase.from("patient_clinical_record").insert({
+      patient_id: paciente.id,
+      clinic_id: viewer.clinic.id,
+      section: "initial_complaint",
+      content: dados.demanda,
+      updated_by: viewer.userId,
     });
   }
 

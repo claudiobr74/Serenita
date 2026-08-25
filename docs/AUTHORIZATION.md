@@ -122,16 +122,19 @@ Todo uso é justificado por comentário no ponto de uso.
 
 ## Ameaças cobertas
 
-| Ameaça                        | Defesa                                                                      |
-| ----------------------------- | --------------------------------------------------------------------------- |
-| IDOR                          | RLS por `clinic_id`; ID conhecido não basta                                 |
-| Acesso cross-tenant           | `current_clinic_id()` em toda policy                                        |
-| Escalação de privilégio       | `WITH CHECK` sobre `role` nas **duas** policies de UPDATE de `profiles`     |
-| Admin lendo prontuário        | `is_clinical_role()` nas policies clínicas                                  |
-| Forja de tenant em escrita    | `WITH CHECK` sobre `clinic_id` em todo `INSERT`                             |
-| Adulteração de auditoria      | `audit_log` sem policy de UPDATE/DELETE + `force row level security`        |
-| Forja de entrada na auditoria | `WITH CHECK` exige `user_id = auth.uid()`; `created_at` imposto por trigger |
-| Vazamento de `service_role`   | Ausente do bundle do cliente; validado por `src/lib/env.ts`                 |
+| Ameaça                           | Defesa                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------- |
+| IDOR                             | RLS por `clinic_id`; ID conhecido não basta                                                 |
+| Acesso cross-tenant              | `current_clinic_id()` em toda policy                                                        |
+| Escalação de privilégio          | `WITH CHECK` sobre `role` nas **duas** policies de UPDATE de `profiles`                     |
+| Admin lendo prontuário           | `is_clinical_role()` nas policies clínicas                                                  |
+| Forja de tenant em escrita       | `WITH CHECK` sobre `clinic_id` em todo `INSERT`                                             |
+| Adulteração de auditoria         | `audit_log` sem policy de UPDATE/DELETE + `force row level security`                        |
+| Forja de entrada na auditoria    | `WITH CHECK` exige `user_id = auth.uid()`; `created_at` imposto por trigger                 |
+| Vazamento de `service_role`      | Ausente do bundle do cliente; validado por `src/lib/env.ts`                                 |
+| Forja de autoria no prontuário   | `WITH CHECK` exige `updated_by = auth.uid()` no INSERT e no UPDATE                          |
+| Forja do histórico de revisão    | `patient_clinical_record_revision` sem policy de INSERT/UPDATE/DELETE; só o trigger escreve |
+| Prontuário de paciente de colega | Policies clínicas exigem `is_clinical_role()` **e** `assigned_psychologist_id = auth.uid()` |
 
 ---
 

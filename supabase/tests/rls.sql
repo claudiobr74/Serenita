@@ -66,6 +66,7 @@ declare
   clinica_b constant uuid := 'c2222222-2222-2222-2222-222222222222';
   convite uuid;
   paciente uuid;
+  registro uuid;
   n int;
 begin
   -- ==========================================================================
@@ -461,8 +462,8 @@ begin
     coalesce((select display_code from public.patients where id = paciente), 'NULO'));
 
   insert into public.patient_clinical_intake
-    (patient_id, clinic_id, initial_complaint, created_by)
-  values (paciente, clinica_a, 'Queixa clinica sigilosa', admin_a2::uuid);
+    (patient_id, clinic_id, therapeutic_approach, created_by)
+  values (paciente, clinica_a, 'TCC', admin_a2::uuid);
   insert into resultado values (38, 'Conteudo clinico',
     'psicologo designado grava acolhimento', 'PERMITIDO', 'PERMITIDO');
 
@@ -478,7 +479,7 @@ begin
 
   begin
     insert into public.patient_clinical_intake
-      (patient_id, clinic_id, initial_complaint, created_by)
+      (patient_id, clinic_id, therapeutic_approach, created_by)
     values (paciente, clinica_a, 'admin escrevendo', admin_a::uuid);
     insert into resultado values (41, 'Admin lendo prontuario',
       'admin grava conteudo clinico', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
@@ -532,14 +533,154 @@ begin
       'apagar paciente', '0 linhas', '0 linhas');
   end;
 
+  -- ==========================================================================
+  -- Prontuário (6:1658) e histórico de revisão
+  --
+  -- Repete as duas condições do acolhimento e acrescenta o que é próprio do
+  -- prontuário: autoria não forjável e histórico que o cliente não escreve.
+  -- ==========================================================================
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', admin_a2), true);
+
+  insert into public.patient_clinical_record
+    (patient_id, clinic_id, section, content, updated_by)
+  values (paciente, clinica_a, 'initial_complaint',
+          'Ansiedade social aguda no ambiente de trabalho.', admin_a2::uuid)
+  returning id into registro;
+  insert into resultado values (49, 'Conteudo clinico',
+    'psicologo designado abre secao do prontuario', 'PERMITIDO', 'PERMITIDO');
+
+  -- Autoria forjada: designado gravando como se fosse o colega.
+  begin
+    insert into public.patient_clinical_record
+      (patient_id, clinic_id, section, content, updated_by)
+    values (paciente, clinica_a, 'clinical_family_history', 'x', psi_a::uuid);
+    insert into resultado values (50, 'Forja de autoria',
+      'gravar secao assinando como colega', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
+  exception when others then
+    insert into resultado values (50, 'Forja de autoria',
+      'gravar secao assinando como colega', 'BLOQUEADO', 'BLOQUEADO');
+  end;
+
+  -- Primeira alteração: arquiva a versão anterior.
+  update public.patient_clinical_record
+     set content = 'Ansiedade social, com impacto em apresentacoes.',
+         updated_by = admin_a2::uuid
+   where id = registro;
+  select count(*) into n from public.patient_clinical_record_revision
+   where record_id = registro;
+  insert into resultado values (51, 'Historico de revisao',
+    'alterar secao arquiva a versao anterior', '1', n::text);
+
+  -- Segunda alteração do MESMO autor dentro da janela: coalesce, não arquiva.
+  update public.patient_clinical_record
+     set content = 'Ansiedade social, com impacto em apresentacoes de lideranca.',
+         updated_by = admin_a2::uuid
+   where id = registro;
+  select count(*) into n from public.patient_clinical_record_revision
+   where record_id = registro;
+  insert into resultado values (52, 'Historico de revisao',
+    'autosave do mesmo autor nao multiplica revisao', '1', n::text);
+
+  -- Escrita sem alteração de conteúdo: também não arquiva.
+  update public.patient_clinical_record
+     set updated_by = admin_a2::uuid
+   where id = registro;
+  select count(*) into n from public.patient_clinical_record_revision
+   where record_id = registro;
+  insert into resultado values (53, 'Historico de revisao',
+    'salvar sem mudar texto nao gera revisao', '1', n::text);
+
+  -- Troca de profissional designado: a versão final do primeiro precisa
+  -- sobreviver à sobrescrita do segundo.
+  set local role postgres;
+  update public.patients set assigned_psychologist_id = psi_a::uuid
+   where id = paciente;
+  set local role authenticated;
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', psi_a), true);
+
+  update public.patient_clinical_record
+     set content = 'Reavaliacao apos troca de profissional.',
+         updated_by = psi_a::uuid
+   where id = registro;
+  select count(*) into n from public.patient_clinical_record_revision
+   where record_id = registro;
+  insert into resultado values (54, 'Historico de revisao',
+    'outro autor sobrescrevendo arquiva a versao do primeiro', '2', n::text);
+
+  -- Ninguém escreve o histórico pela API: a tabela não tem policy de INSERT.
+  begin
+    insert into public.patient_clinical_record_revision
+      (record_id, patient_id, clinic_id, content, author_id)
+    values (registro, paciente, clinica_a, 'historico forjado', psi_a::uuid);
+    insert into resultado values (55, 'Forja de historico',
+      'cliente insere revisao direto', 'BLOQUEADO', 'PASSOU -- REGRESSAO');
+  exception when others then
+    insert into resultado values (55, 'Forja de historico',
+      'cliente insere revisao direto', 'BLOQUEADO', 'BLOQUEADO');
+  end;
+
+  select count(*) into n from public.patient_clinical_record;
+  insert into resultado values (56, 'Conteudo clinico',
+    'novo designado le o prontuario', '1', n::text);
+
+  -- O designado ANTERIOR perde o acesso junto com a designação.
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', admin_a2), true);
+  select count(*) into n from public.patient_clinical_record;
+  insert into resultado values (57, 'Conteudo clinico',
+    'psicologo sem a designacao le o prontuario', '0', n::text);
+
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', admin_a), true);
+  select count(*) into n from public.patient_clinical_record;
+  insert into resultado values (58, 'Admin lendo prontuario',
+    'admin le o prontuario', '0', n::text);
+  select count(*) into n from public.patient_clinical_record_revision;
+  insert into resultado values (59, 'Admin lendo prontuario',
+    'admin le o historico de revisao', '0', n::text);
+
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', sec_a), true);
+  select count(*) into n from public.patient_clinical_record;
+  insert into resultado values (60, 'Conteudo clinico',
+    'secretaria le o prontuario', '0', n::text);
+
+  -- Prontuário não se apaga pela API.
+  perform set_config('request.jwt.claims',
+    format('{"sub":"%s","role":"authenticated"}', psi_a), true);
+  begin
+    delete from public.patient_clinical_record where id = registro;
+    get diagnostics n = row_count;
+    insert into resultado values (61, 'Conteudo clinico',
+      'apagar secao do prontuario', '0 linhas', n::text || ' linhas');
+  exception when others then
+    insert into resultado values (61, 'Conteudo clinico',
+      'apagar secao do prontuario', '0 linhas', '0 linhas');
+  end;
+
+  begin
+    delete from public.patient_clinical_record_revision where record_id = registro;
+    get diagnostics n = row_count;
+    insert into resultado values (62, 'Forja de historico',
+      'apagar revisao do prontuario', '0 linhas', n::text || ' linhas');
+  exception when others then
+    insert into resultado values (62, 'Forja de historico',
+      'apagar revisao do prontuario', '0 linhas', '0 linhas');
+  end;
+
   perform set_config('request.jwt.claims', '', true);
   set local role anon;
   select count(*) into n from public.patients;
-  insert into resultado values (49, 'Leitura anonima',
+  insert into resultado values (63, 'Leitura anonima',
     'anon lista pacientes', '0', n::text);
   select count(*) into n from public.patient_clinical_intake;
-  insert into resultado values (50, 'Leitura anonima',
+  insert into resultado values (64, 'Leitura anonima',
     'anon le acolhimento clinico', '0', n::text);
+  select count(*) into n from public.patient_clinical_record;
+  insert into resultado values (65, 'Leitura anonima',
+    'anon le o prontuario', '0', n::text);
   set local role authenticated;
 end $$;
 

@@ -712,3 +712,83 @@ paciente que a RLS esconde, e a página responde 404 nos dois casos.
 ver exatamente o que veria com um id inventado. Distinguir — 403 para um, 404
 para outro — confirmaria a existência do paciente, que já é informação. Há
 teste e2e para isso.
+
+## #44 — Seções vazias do prontuário mostram um exemplo do que vai nelas
+
+O frame `prontuario` (6:1658) só desenha seções preenchidas, então não há
+placeholder especificado. Um prontuário recém-aberto, porém, são quatro caixas
+idênticas e mudas — e o que se escreve em cada uma é justamente o que as
+distingue.
+
+**Decisão:** cada seção vazia traz um exemplo curto do conteúdo esperado
+("Hipótese diagnóstica, instrumentos aplicados, encaminhamentos"). É
+`placeholder`, some à primeira tecla e nunca é salvo.
+
+## #45 — Limite de 20.000 caracteres por seção
+
+Não há spec de limite no Figma. Sem nenhum, um `paste` acidental de arquivo
+inteiro entra no prontuário e a Server Action aceita.
+
+**Decisão:** 20.000 caracteres por seção — folgado para narrativa clínica
+(~3.000 palavras), apertado para acidente. Aplicado nos dois lados:
+`maxLength` no campo e `z.string().max()` na Server Action, porque o primeiro é
+conveniência e o segundo é a regra.
+
+## #46 — O prontuário é campo de escrita, não cartão com botão "Editar"
+
+O frame mostra o prontuário só em leitura, sem nenhuma ação de edição
+desenhada. Mas o `03 — PATTERNS` exige autosave justamente nesta tela, e
+autosave pressupõe que se esteja escrevendo nela.
+
+**Decisão:** o corpo da seção **é** o campo. Com autosave, um botão "Editar"
+seria um passo sem função — não há o que confirmar depois. O campo não tem
+borda nem fundo próprios até receber foco, de modo que a tela em repouso
+continua idêntica ao frame.
+
+Duas consequências:
+
+- O estado da gravação (`Salvando · Salvo às 14:32 · Erro ao salvar`) aparece
+  abaixo do campo, com `role="status"` e `aria-live="polite"`. O frame não o
+  prevê, mas escrever sem retorno de gravação é o pior dos mundos.
+- `rows={1}` com `field-sizing-content`: a seção preenchida do frame tem
+  exatamente uma linha de corpo, e um mínimo maior deixaria o cartão alto e
+  vazio. O campo cresce com o texto.
+
+## #47 — A "Demanda Inicial" mudou de tabela
+
+Ela nasceu em `patient_clinical_intake.initial_complaint`, vinda da seção 2 do
+frame `novo-paciente` (6:5292). Mas o frame do prontuário (6:1658) tem uma
+seção com o mesmo nome e o mesmo conteúdo.
+
+Manter as duas criaria **duas fontes de verdade** para o campo clínico mais
+consultado do produto: o Resumo mostraria uma versão e o Prontuário outra, e
+ninguém saberia qual vale.
+
+**Decisão:** a demanda inicial é seção do prontuário
+(`patient_clinical_record`). A migration `20260824235613` copia o conteúdo
+existente e derruba a coluna. O acolhimento continua dono da **abordagem
+terapêutica** e da **frequência sugerida** — que são parâmetros do atendimento,
+não registro clínico evolutivo. O cadastro de paciente passou a inaugurar a
+seção do prontuário; a aba Resumo apenas a lê.
+
+## #48 — O histórico de revisão do prontuário é escrito só por trigger, e coalesce
+
+Duas propriedades, cada uma por um motivo.
+
+**Só por trigger.** `patient_clinical_record_revision` não tem policy de
+INSERT, UPDATE nem DELETE — nenhuma. A única escrita possível é a do trigger
+`patient_clinical_record_revise()`, que roda como dono da tabela. É a mesma
+lição que `audit_log` já tinha ensinado: histórico que o cliente pode escrever
+não é histórico. Há cenário de RLS que tenta inserir direto e espera bloqueio.
+
+**Coalesce.** O autosave dispara UPDATE a cada 30s de digitação. Uma revisão
+por UPDATE encheria a tabela de versões que diferem por meia frase, tornando o
+histórico ilegível — o oposto do objetivo. Então o trigger arquiva a versão
+anterior quando o conteúdo muda **e** ou bem o autor mudou, ou ainda não há
+revisão recente daquele autor (janela de 15 minutos).
+
+A condição de autor não é enfeite: sem ela, quando um segundo profissional
+sobrescreve o texto, a versão final do primeiro seria descartada por
+coalescência — perdendo exatamente a versão que o histórico existe para
+guardar. Isso foi encontrado escrevendo o cenário 54 da suíte de RLS, antes de
+chegar a produção.

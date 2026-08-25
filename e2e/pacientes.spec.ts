@@ -198,3 +198,58 @@ test("id inexistente não revela nada", async ({ page }) => {
   );
   expect(resposta?.status()).toBe(404);
 });
+
+test("prontuário é negado a admin mesmo pela URL direta", async ({
+  page,
+}, info) => {
+  // A tab de Prontuário não aparece para admin (asserção do teste de perfil).
+  // Este teste cobre o passo seguinte: digitar a rota na barra de endereços.
+  // O guard da página e a RLS precisam bastar sozinhos — esconder o link é
+  // conveniência de navegação, nunca a proteção.
+  const cpf = cpfComVerificadores(
+    info.project.name === "desktop" ? "555888111" : "666999444",
+  );
+  const nome = `Prontuario E2E ${info.project.name}`;
+
+  await page.goto("/pacientes");
+  test.skip(
+    (await page.getByRole("row").filter({ hasText: nome }).count()) > 0,
+    "Paciente de execução anterior ainda existe; veja docs/TESTING.md.",
+  );
+
+  await page.goto("/pacientes/novo");
+  await page.getByLabel(/^Nome Completo\*?$/).fill(nome);
+  await page.getByLabel(/^Data de Nascimento\*?$/).fill("1993-11-02");
+  await page.getByLabel(/^CPF\*?$/).fill(cpf);
+  await page.getByLabel(/^Telefone\*?$/).fill("(11) 97777-0000");
+  await page.getByRole("button", { name: "Salvar Paciente" }).click();
+  await page.waitForURL(/\/pacientes$/);
+
+  const linha = page.getByRole("row").filter({ hasText: nome });
+  await linha.getByRole("link", { name: "Ver Perfil" }).click();
+  await page.waitForURL(/\/pacientes\/[0-9a-f-]{36}$/);
+
+  await page.goto(`${new URL(page.url()).pathname}/prontuario`);
+
+  // A tela diz o motivo em vez de ficar vazia — prontuário em branco sugeriria
+  // que não há registro, quando o que há é falta de acesso.
+  await expect(page.getByText("Prontuário restrito")).toBeVisible();
+  await expect(page.getByText(/apenas ao psicólogo designado/)).toBeVisible();
+
+  // E, sobretudo: nenhum campo de escrita chega ao browser.
+  await expect(page.locator("textarea")).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Identificação Demográfica" }),
+  ).toHaveCount(0);
+
+  // Limpeza.
+  await page.goto("/pacientes");
+  await page
+    .getByRole("row")
+    .filter({ hasText: nome })
+    .getByRole("button", { name: "Arquivar" })
+    .click();
+  await expect(
+    page.getByRole("row").filter({ hasText: nome }).getByText("Arquivado"),
+  ).toBeVisible();
+});

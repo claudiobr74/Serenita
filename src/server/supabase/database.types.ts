@@ -183,7 +183,6 @@ export type Database = {
           clinic_id: string;
           created_at: string;
           created_by: string | null;
-          initial_complaint: string | null;
           patient_id: string;
           suggested_frequency: string | null;
           therapeutic_approach: string | null;
@@ -193,7 +192,6 @@ export type Database = {
           clinic_id: string;
           created_at?: string;
           created_by?: string | null;
-          initial_complaint?: string | null;
           patient_id: string;
           suggested_frequency?: string | null;
           therapeutic_approach?: string | null;
@@ -203,7 +201,6 @@ export type Database = {
           clinic_id?: string;
           created_at?: string;
           created_by?: string | null;
-          initial_complaint?: string | null;
           patient_id?: string;
           suggested_frequency?: string | null;
           therapeutic_approach?: string | null;
@@ -222,6 +219,120 @@ export type Database = {
             columns: ["patient_id"];
             isOneToOne: true;
             referencedRelation: "patients";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      patient_clinical_record: {
+        Row: {
+          clinic_id: string;
+          content: string;
+          created_at: string;
+          id: string;
+          patient_id: string;
+          section: Database["public"]["Enums"]["clinical_record_section"];
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          clinic_id: string;
+          content?: string;
+          created_at?: string;
+          id?: string;
+          patient_id: string;
+          section: Database["public"]["Enums"]["clinical_record_section"];
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          clinic_id?: string;
+          content?: string;
+          created_at?: string;
+          id?: string;
+          patient_id?: string;
+          section?: Database["public"]["Enums"]["clinical_record_section"];
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "patient_clinical_record_clinic_id_fkey";
+            columns: ["clinic_id"];
+            isOneToOne: false;
+            referencedRelation: "clinics";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "patient_clinical_record_patient_id_fkey";
+            columns: ["patient_id"];
+            isOneToOne: false;
+            referencedRelation: "patients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "patient_clinical_record_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      patient_clinical_record_revision: {
+        Row: {
+          author_id: string | null;
+          clinic_id: string;
+          content: string;
+          created_at: string;
+          id: string;
+          patient_id: string;
+          record_id: string;
+        };
+        Insert: {
+          author_id?: string | null;
+          clinic_id: string;
+          content: string;
+          created_at?: string;
+          id?: string;
+          patient_id: string;
+          record_id: string;
+        };
+        Update: {
+          author_id?: string | null;
+          clinic_id?: string;
+          content?: string;
+          created_at?: string;
+          id?: string;
+          patient_id?: string;
+          record_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "patient_clinical_record_revision_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "patient_clinical_record_revision_clinic_id_fkey";
+            columns: ["clinic_id"];
+            isOneToOne: false;
+            referencedRelation: "clinics";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "patient_clinical_record_revision_patient_id_fkey";
+            columns: ["patient_id"];
+            isOneToOne: false;
+            referencedRelation: "patients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "patient_clinical_record_revision_record_id_fkey";
+            columns: ["record_id"];
+            isOneToOne: false;
+            referencedRelation: "patient_clinical_record";
             referencedColumns: ["id"];
           },
         ];
@@ -399,6 +510,11 @@ export type Database = {
     Enums: {
       care_modality: "in_person" | "online";
       clinic_kind: "individual" | "multi_professional";
+      clinical_record_section:
+        | "demographic_identification"
+        | "initial_complaint"
+        | "clinical_family_history"
+        | "initial_diagnostic_assessment";
       patient_status: "active" | "archived" | "discharged";
       profile_role: "psychologist" | "admin" | "secretary";
     };
@@ -530,6 +646,12 @@ export const Constants = {
     Enums: {
       care_modality: ["in_person", "online"],
       clinic_kind: ["individual", "multi_professional"],
+      clinical_record_section: [
+        "demographic_identification",
+        "initial_complaint",
+        "clinical_family_history",
+        "initial_diagnostic_assessment",
+      ],
       patient_status: ["active", "archived", "discharged"],
       profile_role: ["psychologist", "admin", "secretary"],
     },

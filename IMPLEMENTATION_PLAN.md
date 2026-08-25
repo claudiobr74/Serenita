@@ -218,19 +218,33 @@ curl http://localhost:3000/api/health
 - [x] "Ver Perfil" na lista (6:617)
 - [x] E2E com sessão compartilhada: um login para a suíte, eliminando falha por limite de taxa
 
-### Fatia 3 — Prontuário e plano ⬜
+### Fatia 3 — Prontuário ✅
 
-- [ ] `/pacientes/[id]/prontuario` (`6:1658`) e editor (`6:1562`)
-- [ ] `/pacientes/[id]/plano` (`6:1782`)
-- [ ] Autosave 30s / debounce 500ms com badge "Salvo"
-- [ ] `/pacientes/[id]` (`6:783`) — tabs Overview · Prontuário · Plano · Timeline · Documentos
-- [x] `patients.display_code` — `PAC-###` por clínica (#12)
-- [ ] `/pacientes/[id]/prontuario` (`6:1658`) e editor (`6:1562`)
-- [ ] `/pacientes/[id]/plano` (`6:1782`)
-- [ ] `/pacientes/[id]/timeline` (`6:1919`)
-- [ ] Autosave 30s / debounce 500ms com badge "Salvo"
-- [x] RLS: dado clínico só para o psicólogo designado — **admin não vê** _(estabelecido na fatia 1; cada tabela clínica nova repete o padrão)_
+- [x] Migration `20260824235613` — `patient_clinical_record` (quatro seções do frame, como enum) e `patient_clinical_record_revision`, append-only e escrita só por trigger (#48)
+- [x] A "Demanda Inicial" saiu do acolhimento e virou seção do prontuário: uma fonte de verdade só (#47)
+- [x] `/pacientes/[id]/prontuario` (`6:1658`) — quatro cartões colapsáveis, o corpo é o campo (#46)
+- [x] Autosave com piso de 500ms e teto de 30s, estados `Salvando · Salvo às HH:MM · Erro ao salvar` anunciados por `aria-live`
+- [x] Guard + RLS: quem não é o psicólogo designado vê o motivo, não uma tela vazia — com e2e pela URL direta
+- [x] Suíte de RLS em 65 cenários, com 17 sobre prontuário e histórico
+- [ ] **Persistência local do rascunho** (ARCHITECTURE §15) — vai junto com o editor de sessão, onde a exposição é maior
+- [ ] Editor de registro clínico (`6:1562`) — é `/sessao/[id]/registro`, depende de `sessions` (Fase 6)
+
+### Fatia 4 — Plano terapêutico ⬜
+
+- [ ] `/pacientes/[id]/plano` (`6:1782`) — objetivos com progresso, sob a mesma RLS clínica
+- [ ] Autosave, reaproveitando `src/lib/autosave.ts`
+
+### Fatia 5 — O que fecha a Fase 4 ⬜
+
+- [ ] `/pacientes/[id]/sessoes` (`6:1919`) — depende de `sessions` (Fase 6)
+- [ ] Edição de cadastro do paciente (botão "Editar Dados" do banner 6:843)
 - [ ] Exclusão de paciente com diálogo de confirmação + aprovação de admin
+
+Já estabelecido nas fatias anteriores:
+
+- [x] `/pacientes/[id]` (`6:783`) com **sete** tabs, não cinco (#41)
+- [x] `patients.display_code` — `PAC-###` por clínica (#12)
+- [x] RLS: dado clínico só para o psicólogo designado — **admin não vê**. Cada tabela clínica nova repete o padrão; `patient_clinical_record` foi a terceira
 
 ---
 

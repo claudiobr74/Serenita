@@ -293,7 +293,13 @@ Registro clínico não é apagado silenciosamente. Entidades apropriadas usam `a
 
 Onde o Figma exige (Prontuário, Plano Terapêutico): salvar a cada **30s**, com debounce de **500ms** em inputs de texto. Estados discretos: `Salvando · Salvo · Erro ao salvar`, com timestamp — e anunciados para leitores de tela.
 
+As duas exigências se contradizem para quem digita sem parar: o debounce nunca fecha. `src/lib/autosave.ts` trata os 500ms como **piso** e os 30s como **teto**, com um único timer agendado para o menor dos dois — onde o teto conta desde que o texto ficou sujo e não é reiniciado pelas teclas seguintes.
+
+Além do timer, a gravação é forçada ao sair do campo (`blur`) e ao esconder a aba (`visibilitychange`) — `beforeunload` não serve, porque não espera promessa.
+
 Rascunho persiste localmente para sobreviver a queda de rede ou do browser. **Trabalho digitado pelo profissional não se perde.**
+
+> **Ainda não implementado:** a persistência local do rascunho. O que existe hoje (teto de 30s, gravação no blur e ao esconder a aba) limita a perda a uma janela curta, mas não cobre queda do browser no meio da digitação. Chega junto com o editor de registro de sessão (Fase 6), onde a exposição é maior.
 
 ---
 

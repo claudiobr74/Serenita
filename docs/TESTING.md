@@ -31,7 +31,7 @@ ambiente sem deixar resíduo:
 psql "$SUPABASE_DB_URL" -f supabase/tests/rls.sql
 ```
 
-São 50 cenários, um por linha da tabela de ameaças de `AUTHORIZATION.md`, sobre
+São 65 cenários, um por linha da tabela de ameaças de `AUTHORIZATION.md`, sobre
 duas clínicas com os três papéis. Cada um declara o esperado e o obtido; ao
 final, qualquer divergência levanta exceção, o que aborta a transação e
 sinaliza erro para quem chamou.
@@ -39,6 +39,12 @@ sinaliza erro para quem chamou.
 Os cenários de escalação e de forja de auditoria não são hipotéticos: foram
 falhas **reais** neste banco, encontradas na revisão das Fases 0–2 e corrigidas
 na migration `20260824180540`. Estão aqui para não voltarem.
+
+Os cenários 49–62 cobrem o prontuário: autoria não forjável, histórico escrito
+só por trigger, coalescência do autosave e — o mais sutil — a garantia de que a
+versão final de um profissional sobrevive quando outro assume o paciente e
+sobrescreve o texto. Esse último encontrou um erro real na coalescência antes
+de ele existir em produção.
 
 O cenário de perfil arquivado cobre uma consequência fácil de perder de vista:
 `current_clinic_id()` filtra `archived_at is null`, então arquivar um perfil

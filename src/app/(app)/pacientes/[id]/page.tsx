@@ -7,7 +7,13 @@ import { canAccessClinicalContent } from "@/domain/auth/policy";
 import { ocultarCpf } from "@/domain/paciente/cpf";
 import { requireViewer } from "@/server/auth/session";
 
-import { carregarAcolhimento, carregarPaciente } from "./carregar";
+import { ROTULO_SECAO } from "@/domain/prontuario/secoes";
+
+import {
+  carregarAcolhimento,
+  carregarPaciente,
+  carregarProntuario,
+} from "./carregar";
 
 /**
  * Aba "Resumo" — frame `TabGrid` (6:885).
@@ -76,16 +82,26 @@ export default async function ResumoPage({
 }
 
 /**
- * O único conteúdo clínico que já existe: o acolhimento do cadastro.
+ * O conteúdo clínico que o Resumo mostra: os parâmetros do acolhimento e a
+ * demanda inicial, que é uma seção do prontuário.
  *
- * Não há checagem de papel na consulta — a RLS de `patient_clinical_intake`
- * exige `is_clinical_role()` e a designação. Se este componente for renderizado
- * para quem não deve, ele simplesmente não recebe dado.
+ * A demanda mora em `patient_clinical_record` desde a migration 20260824235613
+ * — aqui é leitura, e o lugar de escrevê-la é a aba Prontuário. Duas telas
+ * editáveis para o mesmo texto seria convite a sobrescrita silenciosa.
+ *
+ * Não há checagem de papel nas consultas: a RLS das duas tabelas exige
+ * `is_clinical_role()` e a designação. Se este componente for renderizado para
+ * quem não deve, ele simplesmente não recebe dado.
  */
 async function AcolhimentoClinico({ pacienteId }: { pacienteId: string }) {
-  const acolhimento = await carregarAcolhimento(pacienteId);
+  const [acolhimento, prontuario] = await Promise.all([
+    carregarAcolhimento(pacienteId),
+    carregarProntuario(pacienteId),
+  ]);
 
-  if (!acolhimento) {
+  const demanda = prontuario.initial_complaint;
+
+  if (!acolhimento && !demanda) {
     return (
       <EmptyState
         icon={NotebookPenIcon}
@@ -105,21 +121,21 @@ async function AcolhimentoClinico({ pacienteId }: { pacienteId: string }) {
         <dl className="grid gap-4 desktop:grid-cols-2">
           <Campo
             termo="Abordagem terapêutica"
-            valor={acolhimento.therapeutic_approach}
+            valor={acolhimento?.therapeutic_approach ?? null}
           />
           <Campo
             termo="Frequência sugerida"
-            valor={acolhimento.suggested_frequency}
+            valor={acolhimento?.suggested_frequency ?? null}
           />
         </dl>
 
-        {acolhimento.initial_complaint && (
+        {demanda && (
           <div className="flex flex-col gap-2">
             <p className="text-caption font-semibold text-text-muted uppercase">
-              Demanda inicial
+              {ROTULO_SECAO.initial_complaint}
             </p>
             <p className="text-body whitespace-pre-wrap text-text-primary">
-              {acolhimento.initial_complaint}
+              {demanda}
             </p>
           </div>
         )}

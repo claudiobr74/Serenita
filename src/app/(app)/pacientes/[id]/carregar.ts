@@ -3,6 +3,10 @@ import "server-only";
 import { cache } from "react";
 
 import type { CareModality, PatientStatus } from "@/domain/paciente/types";
+import {
+  type SecaoDoProntuario,
+  SECOES_DO_PRONTUARIO,
+} from "@/domain/prontuario/secoes";
 import { createSupabaseServerClient } from "@/server/supabase/server";
 
 /**
@@ -79,9 +83,40 @@ export const carregarAcolhimento = cache(async (pacienteId: string) => {
 
   const { data } = await supabase
     .from("patient_clinical_intake")
-    .select("therapeutic_approach, suggested_frequency, initial_complaint")
+    .select("therapeutic_approach, suggested_frequency")
     .eq("patient_id", pacienteId)
     .maybeSingle();
 
   return data ?? null;
 });
+
+/**
+ * Conteúdo do prontuário, por seção — frame `prontuario` (6:1658).
+ *
+ * Como em `carregarAcolhimento`, não há checagem de papel nem de designação:
+ * a RLS de `patient_clinical_record` já responde vazio para quem não é o
+ * psicólogo designado.
+ *
+ * Seções sem linha no banco voltam como string vazia — um prontuário recém
+ * aberto tem as quatro seções, todas em branco.
+ */
+export const carregarProntuario = cache(
+  async (pacienteId: string): Promise<Record<SecaoDoProntuario, string>> => {
+    const supabase = await createSupabaseServerClient();
+
+    const { data } = await supabase
+      .from("patient_clinical_record")
+      .select("section, content")
+      .eq("patient_id", pacienteId);
+
+    const secoes = Object.fromEntries(
+      SECOES_DO_PRONTUARIO.map((secao) => [secao, ""]),
+    ) as Record<SecaoDoProntuario, string>;
+
+    for (const linha of data ?? []) {
+      secoes[linha.section] = linha.content;
+    }
+
+    return secoes;
+  },
+);
