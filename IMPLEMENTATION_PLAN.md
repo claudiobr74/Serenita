@@ -226,6 +226,7 @@ curl http://localhost:3000/api/health
 - [x] Autosave com piso de 500ms e teto de 30s, estados `Salvando · Salvo às HH:MM · Erro ao salvar` anunciados por `aria-live`
 - [x] Guard + RLS: quem não é o psicólogo designado vê o motivo, não uma tela vazia — com e2e pela URL direta
 - [x] Suíte de RLS em 65 cenários, com 17 sobre prontuário e histórico
+- [x] Migration `20260825102728` — `execute` revogado nas funções de trigger, que nasciam expostas como RPC pelo default privileges do Supabase
 - [ ] **Persistência local do rascunho** (ARCHITECTURE §15) — vai junto com o editor de sessão, onde a exposição é maior
 - [ ] Editor de registro clínico (`6:1562`) — é `/sessao/[id]/registro`, depende de `sessions` (Fase 6)
 

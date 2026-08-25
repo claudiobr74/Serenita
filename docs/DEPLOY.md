@@ -52,6 +52,19 @@ No painel, em **Authentication → URL Configuration**:
 
 ---
 
+## Supabase: proteção contra senha vazada
+
+Acusado pelo linter (`auth_leaked_password_protection`) e **desligado por
+padrão**. Com ele ativo, o Supabase Auth recusa senhas que constem do
+HaveIBeenPwned no cadastro e na troca.
+
+No painel, em **Authentication → Sign In / Providers → Email**: ative _Prevent
+use of leaked passwords_ e suba o comprimento mínimo de senha.
+
+Docs: <https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection>
+
+---
+
 ## Supabase: SMTP
 
 Magic link, recuperação de senha e confirmação de conta saem pelo SMTP do

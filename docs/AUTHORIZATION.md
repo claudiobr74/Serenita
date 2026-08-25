@@ -145,18 +145,38 @@ A função chama-se `current_profile_role()` e **não** `current_role()`, porque
 
 ---
 
-## Aviso esperado do database linter
+## Linha de base do database linter
 
-O linter do Supabase reporta
-`authenticated_security_definer_function_executable` para
-`current_clinic_id()`, `current_profile_role()` e `is_clinical_role()`.
+O linter do Supabase (`get_advisors`, categoria `security`) reporta avisos que
+**são esperados**. Registrá-los aqui é o que faz um aviso _novo_ se destacar —
+sem esta lista, "nove avisos" não diz nada a quem olha.
 
-**Isso é intencional e não deve ser "corrigido".** As policies de RLS rodam na
-identidade do chamador e precisam que `authenticated` execute essas funções.
-Convertê-las para `SECURITY INVOKER` causaria recursão infinita — elas leem
-`profiles`, que tem RLS.
+| Função                                                                | Quem executa             | Por quê é intencional                                                                                                                                |
+| --------------------------------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `current_clinic_id()`, `current_profile_role()`, `is_clinical_role()` | `authenticated`          | As policies rodam na identidade do chamador e precisam executá-las. `SECURITY INVOKER` causaria recursão infinita: elas leem `profiles`, que tem RLS |
+| `accept_invitation()`                                                 | `authenticated`          | É o caminho de entrada na clínica. Exige token válido **e** sessão com o e-mail do convite (#32)                                                     |
+| `invitation_preview()`                                                | `anon` + `authenticated` | Pública de propósito: a tela do convite precisa mostrar clínica e papel antes do login. Não confirma token chutado                                   |
+| `rls_auto_enable()`                                                   | `anon` + `authenticated` | **Não é nossa.** É função de event trigger da plataforma Supabase; não está em `supabase/migrations/`                                                |
 
-O que **foi** corrigido é o acesso anônimo: `anon` teve `execute` revogado na
-migration `20260824000002`. Sem sessão as funções retornariam `NULL` de qualquer
-forma, mas função `SECURITY DEFINER` não deve ser alcançável por quem não fez
-login.
+Além dessas, há um aviso de painel — `auth_leaked_password_protection` —, que é
+configuração do projeto e não do schema. Ver `docs/DEPLOY.md`.
+
+### O que não é linha de base
+
+`anon` teve `execute` revogado nas funções de auth na migration
+`20260824134046`. Sem sessão elas retornariam `NULL` de qualquer forma, mas
+função `SECURITY DEFINER` não deve ser alcançável por quem não fez login.
+
+As **funções de trigger** (`touch_updated_at()`, `patients_before_insert()`,
+`patient_clinical_record_revise()`) tiveram `execute` revogado na migration
+`20260825102728`. Elas nasciam expostas como RPC pelo
+`alter default privileges ... grant all on functions to anon, authenticated` que
+o Supabase mantém no schema `public`. Não era explorável — função
+`returns trigger` chamada fora de um trigger levanta erro no primeiro comando —
+mas é superfície de API que não precisa existir.
+
+O revoke não afeta os triggers: o Postgres checa `EXECUTE` no `CREATE TRIGGER`,
+não a cada disparo. Os cenários 37 e 51–54 da suíte de RLS são a prova.
+
+> **Toda função de trigger nova nasce exposta de novo** e precisa do mesmo
+> revoke. É o tipo de coisa que só o linter pega.
